@@ -1,5 +1,5 @@
 // ============================================================================
-// Game.cpp - v5.0 Pixel-Art + Sound (No PNGs, all drawn with code)
+// Game.cpp - v6.0 Simplified: No audio lib, no pixel art, console Beep sound
 // ============================================================================
 
 #include "Game.hpp"
@@ -7,12 +7,13 @@
 #include <cmath>
 #include <ctime>
 #include <cstdlib>
+#include <windows.h>  // For Beep() - no extra DLL needed!
 
 using namespace Colors;
 
 // ===== UTF-8 Text =====
 #define T_TITLE   u8"\u2620 \u041C\u041E\u0420\u0421\u041A\u041E\u0419 \u0411\u041E\u0419 \u2620"
-#define T_SUB     u8"\u041F\u0438\u0440\u0430\u0442\u0441\u043A\u0430\u044F \u043C\u043E\u0440\u0441\u043A\u0430\u044F \u0431\u0438\u0442\u0432\u0430 v5.0"
+#define T_SUB     u8"\u041F\u0438\u0440\u0430\u0442\u0441\u043A\u0430\u044F \u043C\u043E\u0440\u0441\u043A\u0430\u044F \u0431\u0438\u0442\u0432\u0430 v6.0"
 #define T_START   u8"\u041D\u0430\u0447\u0430\u0442\u044C \u0431\u043E\u0439!"
 #define T_RULES   u8"\u041A\u0430\u0440\u0442\u0430 \u0441\u043E\u043A\u0440\u043E\u0432\u0438\u0449"
 #define T_SETT    u8"\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"
@@ -20,7 +21,7 @@ using namespace Colors;
 #define T_SETT_T  u8"\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
 #define T_BOTLVL  u8"\u0421\u043B\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u0431\u043E\u0442\u0430"
 #define T_PLACE   u8"\u0420\u0430\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430"
-#define T_SOUND   u8"\u0417\u0432\u0443\u043A"
+#define T_SOUND   u8"\u0417\u0432\u0443\u043A (Beep)"
 #define T_FULL    u8"\u041F\u043E\u043B\u043D\u044B\u0439 \u044D\u043A\u0440\u0430\u043D"
 #define T_BACK    u8"\u041D\u0430\u0437\u0430\u0434"
 #define T_EASY    u8"\u041B\u0401\u0413\u041A\u0418\u0419"
@@ -81,12 +82,10 @@ Game::Game()
       placingHorizontal(true), botLevel(0), botThinking(false), botTimer(0),
       soundEnabled(true), autoPlace(false), fullscreen(false), playerTurnFirst(true),
       animTimer(0), menuSelection(0), settingsSelection(0),
-      botDirIndex(0), botHunting(false), soundsLoaded(false) {
-
+      botDirIndex(0), botHunting(false) {
     srand((unsigned)time(nullptr));
     window.setFramerateLimit(60);
     loadResources();
-    loadSounds();
     playerBoard = std::make_unique<Board>(P_BX, P_BY, false);
     enemyBoard = std::make_unique<Board>(E_BX, E_BY, true);
 }
@@ -133,30 +132,16 @@ void Game::loadResources() {
         font.loadFromFile("C:/Windows/Fonts/arial.ttf");
 }
 
-void Game::loadSounds() {
-    soundsLoaded = true;
-    if (!hitBuf.loadFromFile("assets/sounds/hit_sound.wav"))   soundsLoaded = false;
-    if (!missBuf.loadFromFile("assets/sounds/miss_sound.wav")) soundsLoaded = false;
-    if (!sunkBuf.loadFromFile("assets/sounds/sunk_sound.wav")) soundsLoaded = false;
-
-    if (soundsLoaded) {
-        hitSound.setBuffer(hitBuf);
-        missSound.setBuffer(missBuf);
-        sunkSound.setBuffer(sunkBuf);
-        hitSound.setVolume(80);
-        missSound.setVolume(60);
-        sunkSound.setVolume(90);
-    }
-
-    if (bgMusic.openFromFile("assets/sounds/pirate_music.wav")) {
-        bgMusic.setLoop(true);
-        bgMusic.setVolume(40);
+// ===== Console Beep sounds (Windows API, no DLL needed!) =====
+void Game::playHitSound()   { if (soundEnabled) Beep(800, 150); }
+void Game::playMissSound()  { if (soundEnabled) Beep(300, 300); }
+void Game::playSunkSound()  {
+    if (soundEnabled) {
+        Beep(1200, 100);
+        Beep(900, 100);
+        Beep(600, 200);
     }
 }
-
-void Game::playHitSound()   { if (soundEnabled && soundsLoaded) hitSound.play(); }
-void Game::playMissSound()  { if (soundEnabled && soundsLoaded) missSound.play(); }
-void Game::playSunkSound()  { if (soundEnabled && soundsLoaded) sunkSound.play(); }
 
 void Game::applyFullscreen() {
     window.close();
@@ -180,26 +165,8 @@ void Game::addMessage(const std::string& text, sf::Color color) {
     messages.push_back({text, 2.5f, color});
 }
 
-void Game::spawnExplosion(float cx, float cy) {
-    sf::Color colors[] = {
-        sf::Color(255, 60, 0), sf::Color(255, 140, 0), sf::Color(255, 200, 0),
-        sf::Color(200, 50, 0), sf::Color(255, 255, 100), sf::Color(150, 30, 0)
-    };
-    for (int i = 0; i < 25; i++) {
-        float angle = (rand() % 360) * 3.14159f / 180.f;
-        float speed = 30 + rand() % 120;
-        particles.push_back({
-            cx, cy,
-            cosf(angle) * speed, sinf(angle) * speed,
-            0.8f + (rand() % 40) / 100.f,
-            colors[rand() % 6],
-            3.f + (rand() % 5)
-        });
-    }
-}
-
 // ===== PIRATE PHRASES =====
-std::string Game::getRandomHitPhrase() const {
+std::string getRandomHitPhrase() {
     const char* p[] = {
         u8"\u041F\u0440\u044F\u043C\u043E \u0432 \u0446\u0435\u043B\u044C, \u043A\u0430\u043F\u0438\u0442\u0430\u043D!",
         u8"\u0415\u0449\u0451 \u043E\u0434\u0438\u043D \u043A \u0414\u044D\u0432\u0438 \u0414\u0436\u043E\u043D\u0441\u0443!",
@@ -211,7 +178,7 @@ std::string Game::getRandomHitPhrase() const {
     return p[rand() % 6];
 }
 
-std::string Game::getRandomMissPhrase() const {
+std::string getRandomMissPhrase() {
     const char* p[] = {
         u8"\u041C\u0438\u043C\u043E! \u0422\u043E\u043B\u044C\u043A\u043E \u0432\u043E\u043B\u043D\u044B...",
         u8"\u041C\u043E\u0440\u0441\u043A\u0430\u044F \u043F\u0435\u043D\u0430!",
@@ -223,7 +190,7 @@ std::string Game::getRandomMissPhrase() const {
     return p[rand() % 6];
 }
 
-std::string Game::getRandomSunkPhrase() const {
+std::string getRandomSunkPhrase() {
     const char* p[] = {
         u8"\u041A\u041E\u0420\u0410\u0411\u041B\u042C \u041D\u0410 \u0414\u041D\u041E!",
         u8"\u0423\u041D\u0418\u0427\u0422\u041E\u0416\u0415\u041D! \u0410\u0440\u0440\u0440!",
@@ -234,7 +201,7 @@ std::string Game::getRandomSunkPhrase() const {
     return p[rand() % 5];
 }
 
-std::string Game::getRandomBotHitPhrase() const {
+std::string getRandomBotHitPhrase() {
     const char* p[] = {
         u8"\u0411\u043E\u0442 \u043F\u043E\u043F\u0430\u043B! \u0412 \u0430\u0441 \u0441\u0442\u0440\u0435\u043B\u044F\u044E\u0442!",
         u8"\u0412\u0440\u0430\u0436\u0435\u0441\u043A\u0430\u044F \u044F\u0434\u0440\u0430!",
@@ -315,8 +282,6 @@ void Game::handleEvents() {
                         if (hit) {
                             if (shipsAfter < shipsBefore) {
                                 addMessage(getRandomSunkPhrase(), sf::Color(255, 140, 0));
-                                spawnExplosion(E_BX + 30 + cursorC * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE/2,
-                                               E_BY + 30 + cursorR * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE/2);
                                 playSunkSound();
                             } else {
                                 addMessage(getRandomHitPhrase(), sf::Color(255, 80, 80));
@@ -329,7 +294,6 @@ void Game::handleEvents() {
 
                         if (enemyBoard->allShipsSunk()) {
                             state = GameState::Victory;
-                            if (bgMusic.getStatus() == sf::Music::Playing) bgMusic.stop();
                         } else if (!hit) {
                             state = GameState::BotTurn;
                             botTimer = 0;
@@ -337,10 +301,7 @@ void Game::handleEvents() {
                         }
                     }
                 }
-                if (event.key.code == sf::Keyboard::Escape) {
-                    state = GameState::Menu;
-                    if (bgMusic.getStatus() == sf::Music::Playing) bgMusic.stop();
-                }
+                if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
             }
             else if (state == GameState::Victory || state == GameState::Defeat) {
                 if (event.key.code == sf::Keyboard::Enter) { resetGame(); state = GameState::Menu; }
@@ -355,16 +316,6 @@ void Game::update(float dt) {
     for (auto& m : messages) m.timer -= dt;
     messages.erase(std::remove_if(messages.begin(), messages.end(),
         [](const BattleMessage& m) { return m.timer <= 0; }), messages.end());
-
-    for (auto& p : particles) {
-        p.timer -= dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vy += 60 * dt;
-        p.size *= 0.98f;
-    }
-    particles.erase(std::remove_if(particles.begin(), particles.end(),
-        [](const ExplosionParticle& p) { return p.timer <= 0; }), particles.end());
 
     if (state == GameState::BotTurn && botThinking) {
         botTimer += dt;
@@ -386,7 +337,6 @@ void Game::update(float dt) {
             botThinking = false;
             if (playerBoard->allShipsSunk()) {
                 state = GameState::Defeat;
-                if (bgMusic.getStatus() == sf::Music::Playing) bgMusic.stop();
             } else {
                 state = GameState::Battle;
             }
@@ -475,7 +425,7 @@ void Game::startPlacement() {
     playerBoard->clear(); enemyBoard->clear();
     enemyBoard->autoPlace();
     currentShipIdx = 0; cursorR = 0; cursorC = 0; placingHorizontal = true;
-    messages.clear(); particles.clear();
+    messages.clear();
     if (autoPlace) { playerBoard->autoPlace(); startBattle(); }
 }
 
@@ -483,9 +433,8 @@ void Game::startBattle() {
     state = GameState::Battle;
     cursorR = 0; cursorC = 0; botThinking = false;
     botTargets.clear(); botHunting = false; botDirIndex = 0;
-    messages.clear(); particles.clear();
+    messages.clear();
     playerTurnFirst = (rand() % 2 == 0);
-    if (soundEnabled && bgMusic.getStatus() != sf::Music::Playing) bgMusic.play();
     if (!playerTurnFirst) { state = GameState::BotTurn; botTimer = 0; botThinking = true; }
 }
 
@@ -493,19 +442,19 @@ void Game::resetGame() {
     playerBoard->clear(); enemyBoard->clear();
     cursorR = 0; cursorC = 0; currentShipIdx = 0; menuSelection = 0;
     botTargets.clear(); botHunting = false; botDirIndex = 0;
-    messages.clear(); particles.clear();
+    messages.clear();
 }
 
 // ===== RENDERING =====
 void Game::render() {
     window.clear(BG);
     switch (state) {
-        case GameState::Menu:      drawDecorations(); renderMenu(); break;
+        case GameState::Menu:      renderMenu(); break;
         case GameState::Settings:  renderSettings(); break;
         case GameState::Rules:     renderRules(); break;
-        case GameState::Placement: drawDecorations(); renderPlacement(); break;
-        case GameState::Battle:    drawDecorations(); renderBattle(); break;
-        case GameState::BotTurn:   drawDecorations(); renderBotTurn(); break;
+        case GameState::Placement: renderPlacement(); break;
+        case GameState::Battle:    renderBattle(); break;
+        case GameState::BotTurn:   renderBotTurn(); break;
         case GameState::Victory:   renderVictory(); break;
         case GameState::Defeat:    renderDefeat(); break;
         default: break;
@@ -514,16 +463,6 @@ void Game::render() {
 }
 
 void Game::renderMenu() {
-    for (int i = 0; i < 6; i++) {
-        float x = 80 + i * 180 + sin(animTimer * 0.8f + i * 1.3f) * 25;
-        float y = 480 + cos(animTimer * 0.6f + i * 0.9f) * 35;
-        sf::RectangleShape wave(sf::Vector2f(CELL_SIZE + 4, CELL_SIZE + 4));
-        wave.setPosition(x, y);
-        int a = 60 + (int)(sin(animTimer + i) * 30);
-        wave.setFillColor(sf::Color(30, 90, 150, a));
-        window.draw(wave);
-    }
-
     drawText(T_TITLE, WINDOW_WIDTH / 2, 70, 52, TEXT_GOLD, true);
     drawText(T_SUB, WINDOW_WIDTH / 2, 130, 18, sf::Color(180, 160, 100), true);
 
@@ -624,7 +563,6 @@ void Game::renderBattle() {
     enemyBoard->draw(window, font, cursorR, cursorC, false, 0, true, true);
 
     drawInfoPanel();
-    drawParticles();
 
     if (!messages.empty()) {
         float msgY = 540;
@@ -683,19 +621,8 @@ void Game::renderVictory() {
     overlay.setFillColor(sf::Color(0, 20, 0, 200));
     window.draw(overlay);
 
-    drawPixelTreasure(WINDOW_WIDTH / 2 - 40, 100);
-
     drawText(T_WIN, WINDOW_WIDTH / 2, 300, 56, sf::Color(50, 255, 100), true);
     drawText(T_WIN2, WINDOW_WIDTH / 2, 380, 24, TEXT, true);
-
-    for (int i = 0; i < 12; i++) {
-        float px = 200 + (rand() % 700);
-        float py = 100 + (rand() % 400);
-        sf::CircleShape pt(3);
-        pt.setPosition(px + sin(animTimer + i) * 20, py + cos(animTimer * 0.7f + i) * 15);
-        pt.setFillColor(sf::Color(255, 215, 0, 100 + (int)(sin(animTimer * 2 + i) * 50)));
-        window.draw(pt);
-    }
     drawText(T_MNU2, WINDOW_WIDTH / 2, 500, 20, TEXT_GOLD, true);
 }
 
@@ -704,195 +631,7 @@ void Game::renderDefeat() {
     overlay.setFillColor(sf::Color(20, 0, 0, 200));
     window.draw(overlay);
 
-    drawPixelSkeleton(WINDOW_WIDTH / 2 - 30, 120);
-
     drawText(T_LOSE, WINDOW_WIDTH / 2, 320, 56, sf::Color(255, 50, 50), true);
     drawText(T_LOSE2, WINDOW_WIDTH / 2, 400, 24, TEXT, true);
     drawText(T_MNU2, WINDOW_WIDTH / 2, 520, 20, TEXT_GOLD, true);
-}
-
-// ===== PIXEL ART (all drawn with code via sf::RectangleShape) =====
-
-static void pixel(sf::RenderWindow& w, float x, float y, float s, sf::Color c) {
-    sf::RectangleShape r(sf::Vector2f(s, s));
-    r.setPosition(x, y);
-    r.setFillColor(c);
-    w.draw(r);
-}
-
-void Game::drawPixelFrigate(float ox, float oy) {
-    float p = 4;
-    sf::Color HULL(80, 50, 30);
-    sf::Color HULL_L(110, 70, 40);
-    sf::Color SAIL(180, 180, 190);
-    sf::Color SAIL_D(140, 140, 150);
-    sf::Color FLAG(0, 0, 0);
-    sf::Color MAST(60, 40, 20);
-    sf::Color CANNON(40, 40, 40);
-    sf::Color WAVE(30, 70, 130, 150);
-
-    for (int x = 4; x <= 30; x++) for (int y = 18; y <= 22; y++) pixel(window, ox + x * p, oy + y * p, p, HULL);
-    for (int x = 3; x <= 31; x++) pixel(window, ox + x * p, oy + 23 * p, p, HULL_L);
-    for (int x = 2; x <= 32; x++) pixel(window, ox + x * p, oy + 24 * p, p, HULL);
-    for (int x = 5; x <= 29; x++) pixel(window, ox + x * p, oy + 17 * p, p, HULL_L);
-
-    for (int y = 2; y <= 20; y++) pixel(window, ox + 17 * p, oy + y * p, p, MAST);
-    for (int y = 5; y <= 18; y++) pixel(window, ox + 11 * p, oy + y * p, p, MAST);
-
-    for (int x = 18; x <= 28; x++) for (int y = 4; y <= 14; y++) pixel(window, ox + x * p, oy + y * p, p, ((x + y) % 3 == 0) ? SAIL_D : SAIL);
-    for (int x = 5; x <= 10; x++) for (int y = 7; y <= 15; y++) pixel(window, ox + x * p, oy + y * p, p, ((x + y) % 3 == 0) ? SAIL_D : SAIL);
-
-    pixel(window, ox + 16 * p, oy + 1 * p, p, FLAG);
-    pixel(window, ox + 18 * p, oy + 1 * p, p, FLAG);
-    pixel(window, ox + 17 * p, oy + 2 * p, p, FLAG);
-    pixel(window, ox + 15 * p, oy + 2 * p, p, FLAG);
-    pixel(window, ox + 19 * p, oy + 2 * p, p, FLAG);
-    pixel(window, ox + 17 * p, oy + 0 * p, p, sf::Color::White);
-
-    for (int x = 8; x <= 26; x += 6) pixel(window, ox + x * p, oy + 19 * p, p, CANNON);
-
-    pixel(window, ox + 2 * p, oy + 20 * p, p, HULL_L);
-    pixel(window, ox + 32 * p, oy + 20 * p, p, HULL_L);
-    pixel(window, ox + 1 * p, oy + 21 * p, p, HULL);
-    pixel(window, ox + 33 * p, oy + 21 * p, p, HULL);
-
-    for (int x = 0; x <= 35; x++) {
-        float wy = sin(animTimer * 2 + x * 0.5f) * 2;
-        pixel(window, ox + x * p, oy + 25 * p + wy, p, WAVE);
-    }
-}
-
-void Game::drawPixelSkeleton(float ox, float oy) {
-    float p = 4;
-    sf::Color BONE(200, 210, 220);
-    sf::Color BONE_D(160, 170, 180);
-    sf::Color EYE(50, 200, 50);
-    sf::Color HAT(40, 30, 20);
-    sf::Color HAT_G(180, 160, 60);
-
-    for (int x = 8; x <= 16; x++) for (int y = 4; y <= 11; y++) pixel(window, ox + x * p, oy + y * p, p, BONE);
-    for (int x = 9; x <= 15; x++) for (int y = 12; y <= 14; y++) pixel(window, ox + x * p, oy + y * p, p, BONE_D);
-
-    pixel(window, ox + 10 * p, oy + 7 * p, p, sf::Color::Black);
-    pixel(window, ox + 14 * p, oy + 7 * p, p, sf::Color::Black);
-    pixel(window, ox + 10 * p, oy + 7 * p, p - 1, EYE);
-    pixel(window, ox + 14 * p, oy + 7 * p, p - 1, EYE);
-
-    pixel(window, ox + 12 * p, oy + 9 * p, p, sf::Color::Black);
-
-    for (int x = 10; x <= 14; x += 2) pixel(window, ox + x * p, oy + 13 * p, p, BONE);
-
-    for (int x = 6; x <= 18; x++) pixel(window, ox + x * p, oy + 3 * p, p, HAT);
-    for (int x = 8; x <= 16; x++) for (int y = 0; y <= 2; y++) pixel(window, ox + x * p, oy + y * p, p, HAT);
-    for (int x = 8; x <= 16; x++) pixel(window, ox + x * p, oy + 2 * p, p, HAT_G);
-
-    for (int y = 15; y <= 28; y++) pixel(window, ox + 12 * p, oy + y * p, p, BONE_D);
-    for (int x = 9; x <= 15; x++) pixel(window, ox + x * p, oy + 16 * p, p, BONE);
-    for (int x = 8; x <= 16; x++) pixel(window, ox + x * p, oy + 19 * p, p, BONE_D);
-    for (int x = 8; x <= 16; x++) pixel(window, ox + x * p, oy + 22 * p, p, BONE);
-    for (int x = 9; x <= 15; x++) pixel(window, ox + x * p, oy + 25 * p, p, BONE_D);
-
-    for (int x = 5; x <= 8; x++) pixel(window, ox + x * p, oy + 18 * p, p, BONE);
-    for (int x = 16; x <= 19; x++) pixel(window, ox + x * p, oy + 18 * p, p, BONE);
-    for (int y = 10; y <= 24; y++) pixel(window, ox + 20 * p, oy + y * p, p, sf::Color(180, 180, 200));
-    pixel(window, ox + 19 * p, oy + 24 * p, p, HAT_G);
-    pixel(window, ox + 21 * p, oy + 24 * p, p, HAT_G);
-}
-
-void Game::drawPixelTreasure(float ox, float oy) {
-    float p = 4;
-    sf::Color WOOD(120, 80, 40);
-    sf::Color WOOD_D(80, 50, 25);
-    sf::Color METAL(160, 160, 170);
-    sf::Color GOLD(255, 215, 0);
-    sf::Color GOLD_D(200, 170, 0);
-    sf::Color GEM_R(255, 50, 50);
-    sf::Color GEM_G(50, 200, 50);
-
-    for (int x = 4; x <= 20; x++) for (int y = 12; y <= 18; y++) pixel(window, ox + x * p, oy + y * p, p, WOOD);
-    for (int y = 12; y <= 18; y++) { pixel(window, ox + 4 * p, oy + y * p, p, METAL); pixel(window, ox + 20 * p, oy + y * p, p, METAL); }
-    for (int x = 4; x <= 20; x++) pixel(window, ox + x * p, oy + 18 * p, p, METAL);
-    pixel(window, ox + 12 * p, oy + 14 * p, p, GOLD);
-
-    for (int x = 4; x <= 20; x++) for (int y = 6; y <= 11; y++) pixel(window, ox + x * p, oy + y * p, p, WOOD_D);
-    for (int x = 4; x <= 20; x++) pixel(window, ox + x * p, oy + 6 * p, p, METAL);
-
-    for (int i = 0; i < 15; i++) {
-        float cx = ox + (6 + i) * p + sin(i * 1.5f) * 3;
-        float cy = oy + 19 * p + cos(i * 1.2f) * 2;
-        pixel(window, cx, cy, p - 1, (i % 3 == 0) ? GOLD_D : GOLD);
-    }
-    pixel(window, ox + 8 * p, oy + 20 * p, p, GEM_R);
-    pixel(window, ox + 15 * p, oy + 21 * p, p, GEM_G);
-    pixel(window, ox + 18 * p, oy + 19 * p, p, sf::Color(50, 100, 255));
-
-    float sparkle = sin(animTimer * 3) * 0.5f + 0.5f;
-    sf::Color spark(GOLD.r, GOLD.g, GOLD.b, (sf::Uint8)(sparkle * 200));
-    pixel(window, ox + 10 * p, oy + 16 * p, p - 1, spark);
-    pixel(window, ox + 16 * p, oy + 15 * p, p - 1, spark);
-}
-
-void Game::drawPixelPalms(float ox, float oy) {
-    float p = 4;
-    sf::Color TRUNK(100, 60, 30);
-    sf::Color TRUNK_L(130, 80, 40);
-    sf::Color LEAF(40, 140, 60);
-    sf::Color LEAF_L(60, 180, 80);
-    sf::Color LEAF_D(30, 100, 40);
-    sf::Color SAND(180, 160, 100);
-
-    for (int x = 0; x <= 30; x++) for (int y = 28; y <= 32; y++) pixel(window, ox + x * p, oy + y * p, p, SAND);
-
-    int tx = 15;
-    for (int y = 10; y <= 28; y++) {
-        pixel(window, ox + tx * p, oy + y * p, p, TRUNK);
-        pixel(window, ox + (tx + 1) * p, oy + y * p, p, TRUNK_L);
-        if (y % 5 == 0) tx += (y < 18) ? 1 : -1;
-    }
-
-    int cx = tx, cy = 10;
-    int fronds[][2] = { {-6,2}, {-4,-1}, {-1,-3}, {3,-3}, {6,-1}, {8,2} };
-    for (auto& f : fronds) {
-        int fx = cx + f[0], fy = cy + f[1];
-        for (int t = 0; t < 8; t++) {
-            int px_ = cx + (fx - cx) * t / 7;
-            int py_ = cy + (fy - cy) * t / 7;
-            sf::Color c = (t % 2 == 0) ? LEAF : ((t % 3 == 0) ? LEAF_D : LEAF_L);
-            pixel(window, ox + px_ * p, oy + py_ * p, p, c);
-            pixel(window, ox + (px_ + 1) * p, oy + py_ * p, p, c);
-        }
-    }
-
-    int tx2 = 5;
-    for (int y = 15; y <= 28; y++) {
-        pixel(window, ox + tx2 * p, oy + y * p, p, TRUNK);
-        if (y % 4 == 0) tx2 += (y < 22) ? 1 : 0;
-    }
-    for (auto& f : fronds) {
-        int fx = tx2 + f[0] / 2, fy = 15 + f[1] / 2;
-        for (int t = 0; t < 6; t++) {
-            int px_ = tx2 + (fx - tx2) * t / 5;
-            int py_ = 15 + (fy - 15) * t / 5;
-            pixel(window, ox + px_ * p, oy + py_ * p, p - 1, LEAF_L);
-        }
-    }
-}
-
-void Game::drawPixelExplosion(float ox, float oy, float scale) {
-}
-
-void Game::drawParticles() {
-    for (auto& p : particles) {
-        float alpha = p.timer / 0.8f;
-        sf::Color c = p.color;
-        c.a = (sf::Uint8)(255 * alpha);
-        pixel(window, p.x, p.y, p.size, c);
-    }
-}
-
-void Game::drawDecorations() {
-    drawPixelFrigate(20, 120);
-    drawPixelSkeleton(WINDOW_WIDTH - 140, 100);
-    drawPixelPalms(10, 410);
-    drawPixelTreasure(WINDOW_WIDTH - 100, 420);
 }
