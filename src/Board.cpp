@@ -1,5 +1,5 @@
 // ============================================================================
-// Board.cpp - Реализация игрового поля
+// Board.cpp - v7.0 PIRATE - Wooden frame, old map style
 // ============================================================================
 
 #include "Board.hpp"
@@ -81,7 +81,7 @@ bool Board::shoot(int r, int c) {
         cells[r][c].setState(CellState::Hit);
         for (auto& ship : ships) {
             if (ship->hunches(r, c)) {
-                ship->hitPart(r, c);  // mark part as damaged for isSunk() check
+                ship->hitPart(r, c);
                 break;
             }
         }
@@ -143,24 +143,41 @@ void Board::draw(sf::RenderWindow& window, sf::Font& font,
 
             cells[r][c].draw(window, x, y, CELL_SIZE, showShips, isCursor);
 
-            // Draw ghost overlay
             if (isGhost) {
                 sf::RectangleShape ghost;
                 ghost.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
                 ghost.setPosition(x, y);
                 ghost.setFillColor(ghostValid ? GHOST_OK : GHOST_BAD);
+                ghost.setOutlineColor(sf::Color(200, 180, 100));
+                ghost.setOutlineThickness(2);
                 window.draw(ghost);
             }
         }
     }
 
-    // Draw ships
     for (const auto& ship : ships) {
         ship->draw(window, offsetX + 30, offsetY + 30, CELL_SIZE, showShips, isEnemy);
     }
 }
 
 void Board::drawGrid(sf::RenderWindow& window, sf::Font& font) {
+    // Подложка - старая карта
+    sf::RectangleShape bg;
+    bg.setSize(sf::Vector2f(BOARD_PIXELS + 50, BOARD_PIXELS + 50));
+    bg.setPosition(offsetX + 3, offsetY + 3);
+    bg.setFillColor(BG_MAP);
+    window.draw(bg);
+
+    // Деревянная рамка толстая
+    sf::RectangleShape outerFrame;
+    outerFrame.setSize(sf::Vector2f(BOARD_PIXELS + 50, BOARD_PIXELS + 50));
+    outerFrame.setPosition(offsetX + 3, offsetY + 3);
+    outerFrame.setFillColor(sf::Color::Transparent);
+    outerFrame.setOutlineColor(sf::Color(90, 60, 30));
+    outerFrame.setOutlineThickness(5);
+    window.draw(outerFrame);
+
+    // Внутренняя тонкая рамка - бронзовая
     sf::RectangleShape border;
     border.setSize(sf::Vector2f(BOARD_PIXELS + 40, BOARD_PIXELS + 40));
     border.setPosition(offsetX + 8, offsetY + 8);
@@ -169,18 +186,23 @@ void Board::drawGrid(sf::RenderWindow& window, sf::Font& font) {
     border.setOutlineThickness(2);
     window.draw(border);
 
+    // Буквы и цифры - пиратский золотой стиль
     for (int c = 0; c < BOARD_SIZE; c++) {
-        sf::Text text(std::to_string(c + 1), font, 13);
+        sf::Text text(std::to_string(c + 1), font, 14);
         text.setFillColor(TEXT_GOLD);
-        float x = offsetX + 30 + c * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 5;
+        text.setOutlineColor(sf::Color(80, 50, 20));
+        text.setOutlineThickness(1);
+        float x = offsetX + 30 + c * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 6;
         text.setPosition(x, offsetY + 10);
         window.draw(text);
     }
 
     for (int r = 0; r < BOARD_SIZE; r++) {
-        sf::Text text(std::string(1, 'A' + r), font, 13);
+        sf::Text text(std::string(1, 'A' + r), font, 14);
         text.setFillColor(TEXT_GOLD);
-        text.setPosition(offsetX + 12, offsetY + 35 + r * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 8);
+        text.setOutlineColor(sf::Color(80, 50, 20));
+        text.setOutlineThickness(1);
+        text.setPosition(offsetX + 13, offsetY + 35 + r * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 10);
         window.draw(text);
     }
 }
