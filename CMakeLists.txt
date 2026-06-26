@@ -4,7 +4,7 @@ project(SeaBattleSFML VERSION 2.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# --- MSVC UTF-8 FIX: /utf-8 flag ensures Unicode strings compile correctly ---
+# --- MSVC UTF-8 FIX ---
 if(MSVC)
     add_compile_options(/utf-8)
 endif()
@@ -12,7 +12,8 @@ endif()
 # --- Set SFML path ---
 set(SFML_DIR "C:/Users/User/Desktop/SFML-2.6.1/lib/cmake/SFML")
 
-find_package(SFML 2.6 COMPONENTS graphics window system audio REQUIRED)
+# Only graphics + window + system -- NO audio DLL needed!
+find_package(SFML 2.6 COMPONENTS graphics window system REQUIRED)
 
 set(SOURCES
     src/main.cpp
@@ -34,11 +35,11 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
+# Only 3 SFML libs -- NO sfml-audio!
 target_link_libraries(${PROJECT_NAME} PRIVATE
     sfml-graphics
     sfml-window
     sfml-system
-    sfml-audio
 )
 
 # Copy assets to output directory after build
