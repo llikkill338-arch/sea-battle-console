@@ -1,258 +1,186 @@
 // ============================================================================
-// graphics.cpp — Реализация графики и UI
+// graphics.cpp - Графика и UI (с псевдографикой)
 // ============================================================================
 
 #include "graphics.h"
 #include <iostream>
 
+using namespace std;
+
 void setColor(Color text, Color background) {
-    SetConsoleTextAttribute(hstdout, text + background * 16);
+    SetConsoleTextAttribute(hstdout, (WORD)((background << 4) | text));
 }
 
 void setCursor(int x, int y) {
-    COORD coord = { (SHORT)x, (SHORT)y };
+    COORD coord = { (short)x, (short)y };
     SetConsoleCursorPosition(hstdout, coord);
 }
 
 void hideCursor() {
-    CONSOLE_CURSOR_INFO info;
-    info.bVisible = false;
-    info.dwSize = 1;
+    CONSOLE_CURSOR_INFO info = { 1, 0 };
     SetConsoleCursorInfo(hstdout, &info);
 }
+
+// --- Рамки с настоящей псевдографикой ---
 
 void drawBox(int x, int y, int w, int h, Color borderColor) {
     setColor(borderColor, black);
     setCursor(x, y);
-    std::cout << "+";
-    for (int i = 0; i < w; i++) std::cout << "=";
-    std::cout << "+";
-    for (int i = 0; i < h; i++) {
-        setCursor(x, y + 1 + i);
-        std::cout << "|";
-        setCursor(x + w + 1, y + 1 + i);
-        std::cout << "|";
+    cout << char(201);
+    for (int i = 0; i < w - 2; i++) cout << char(205);
+    cout << char(187);
+    for (int i = 1; i < h - 1; i++) {
+        setCursor(x, y + i);
+        cout << char(186);
+        setCursor(x + w - 1, y + i);
+        cout << char(186);
     }
-    setCursor(x, y + h + 1);
-    std::cout << "+";
-    for (int i = 0; i < w; i++) std::cout << "=";
-    std::cout << "+";
+    setCursor(x, y + h - 1);
+    cout << char(200);
+    for (int i = 0; i < w - 2; i++) cout << char(205);
+    cout << char(188);
+    setColor(white, black);
 }
 
 void drawLine(int x, int y, int len, bool horizontal, Color color) {
     setColor(color, black);
     setCursor(x, y);
     if (horizontal) {
-        for (int i = 0; i < len; i++) std::cout << "=";
+        for (int i = 0; i < len; i++) cout << char(196);
     } else {
         for (int i = 0; i < len; i++) {
             setCursor(x, y + i);
-            std::cout << "|";
+            cout << char(179);
         }
     }
+    setColor(white, black);
 }
 
 void drawDivider() {
-    setColor(lightgray, black);
-    setCursor(DIVIDER_X, 0);
-    std::cout << "+";
-    for (int y = 1; y < SCREEN_HEIGHT - 1; y++) {
-        setCursor(DIVIDER_X, y);
-        std::cout << "|";
+    setColor(yellow, black);
+    for (int i = 0; i < 25; i++) {
+        setCursor(DIVIDER_X, i);
+        if (i == 0)       cout << char(203);
+        else if (i == 24) cout << char(202);
+        else if (i == 12) cout << char(206);
+        else              cout << char(186);
     }
-    setCursor(DIVIDER_X, SCREEN_HEIGHT - 1);
-    std::cout << "+";
-}
-
-static void getCellScreenPos(int y, int x, int offsetX, int offsetY, int& sx, int& sy) {
-    sx = offsetX + 3 + x * 3;
-    sy = offsetY + 2 + y;
-}
-
-static bool isGhostCell(int gy, int gx, int cursorY, int cursorX, int ghostSize, bool ghostDir) {
-    if (ghostSize <= 0) return false;
-    if (ghostDir) {
-        return (gy == cursorY && gx >= cursorX && gx < cursorX + ghostSize);
-    } else {
-        return (gx == cursorX && gy >= cursorY && gy < cursorY + ghostSize);
-    }
-}
-
-static void drawFleetInfo(int field[R][R], int offsetX, int offsetY) {
     setColor(white, black);
-    setCursor(offsetX + 35, offsetY);
-    std::cout << "+==========+";
-    setCursor(offsetX + 35, offsetY + 1);
-    std::cout << "| Fleet    |";
-
-    int ships[5] = {0, 0, 0, 0, 0};
-    bool used[R][R] = {false};
-
-    for (int y = 0; y < R; y++) {
-        for (int x = 0; x < R; x++) {
-            if (field[y][x] == CELL_SHIP && !used[y][x]) {
-                int size = 0;
-                int dx = 0, dy = 0;
-                if (x + 1 < R && field[y][x+1] == CELL_SHIP) dx = 1;
-                else if (y + 1 < R && field[y+1][x] == CELL_SHIP) dy = 1;
-                int cx = x, cy = y;
-                while (cx < R && cy < R && field[cy][cx] == CELL_SHIP && !used[cy][cx]) {
-                    used[cy][cx] = true;
-                    size++;
-                    cx += dx; cy += dy;
-                }
-                if (size >= 1 && size <= 4) ships[size]++;
-            }
-        }
-    }
-
-    int row = 2;
-    for (int s = 4; s >= 1; s--) {
-        setCursor(offsetX + 35, offsetY + row);
-        std::cout << "| ";
-        if (ships[s] > 0) setColor(lightgreen, black);
-        else setColor(darkgray, black);
-        std::cout << s << "x" << ships[s] << " ";
-        for (int i = 0; i < s; i++) {
-            if (ships[s] > 0) std::cout << "[S]";
-            else std::cout << "[.]";
-        }
-        setColor(white, black);
-        int printed = 3 + 3 * s;
-        while (printed < 10) { std::cout << " "; printed++; }
-        std::cout << "|";
-        row++;
-    }
-    setCursor(offsetX + 35, offsetY + row);
-    std::cout << "+==========+";
 }
+
+// --- Отрисовка клеток ---
 
 void drawCell(int val, bool isCursor, bool showShips, bool isGhost, bool isValid) {
-    if (isCursor) {
-        setColor(yellow, black);
-        std::cout << "[+]";
-        return;
-    }
     if (isGhost) {
         if (isValid) setColor(green, black);
         else setColor(red, black);
-        std::cout << "[S]";
-        return;
+        cout << "[ ]";
+        setColor(white, black);
     }
-    switch (val) {
-        case CELL_WATER:
-            setColor(lightcyan, black);
-            std::cout << " ~ ";
-            break;
-        case CELL_SHIP:
-            if (showShips) {
-                setColor(lightgreen, black);
-                std::cout << "[S]";
-            } else {
-                setColor(lightcyan, black);
-                std::cout << " ~ ";
-            }
-            break;
-        case CELL_MISS:
-            setColor(darkgray, black);
-            std::cout << " * ";
-            break;
-        case CELL_HIT:
-            setColor(red, black);
-            std::cout << "[X]";
-            break;
-        default:
-            setColor(lightcyan, black);
-            std::cout << " ~ ";
+    else if (isCursor) {
+        setColor(yellow, black);
+        cout << "[";
+        setColor(red, black);
+        cout << "+";
+        setColor(yellow, black);
+        cout << "]";
+        setColor(white, black);
+    }
+    else if (val == CELL_SHIP) {
+        if (showShips) {
+            setColor(lightgreen, black);
+            cout << " S ";
+        } else {
+            setColor(cyan, black);
+            cout << " ~ ";
+        }
+        setColor(white, black);
+    }
+    else if (val == CELL_HIT) {
+        setColor(lightred, black);
+        cout << " X ";
+        setColor(white, black);
+    }
+    else if (val == CELL_MISS) {
+        setColor(darkgray, black);
+        cout << " * ";
+        setColor(white, black);
+    }
+    else {
+        setColor(cyan, black);
+        cout << " ~ ";
+        setColor(white, black);
     }
 }
+
+// --- Вспомогательные функции ---
+
+static bool isGhostCell(int gy, int gx, int cursorY, int cursorX, int ghostSize, bool ghostDir) {
+    if (ghostSize <= 0) return false;
+    if (ghostDir) return (gy == cursorY && gx >= cursorX && gx < cursorX + ghostSize);
+    else          return (gx == cursorX && gy >= cursorY && gy < cursorY + ghostSize);
+}
+
+// --- Отрисовка поля 10x10 ---
 
 void drawSingleGrid(int field[R][R], int cursorY, int cursorX, bool showShips,
     bool showFleet, int ghostSize, bool ghostDir, bool isValid,
     bool showCrosshair, int offsetX, int offsetY) {
 
-    drawBox(offsetX, offsetY, 32, 11, white);
-
-    setColor(white, black);
-    setCursor(offsetX + 3, offsetY + 1);
-    std::cout << "A  B  C  D  E  F  G  H  I  J";
-
-    for (int y = 0; y < R; y++) {
-        setColor(white, black);
-        setCursor(offsetX + 1, offsetY + 2 + y);
-        std::cout << y;
-
-        for (int x = 0; x < R; x++) {
-            int sx = offsetX + 3 + x * 3;
-            int sy = offsetY + 2 + y;
-            setCursor(sx, sy);
-            bool isCursor = (showCrosshair && y == cursorY && x == cursorX);
-            bool isGhost = isGhostCell(y, x, cursorY, cursorX, ghostSize, ghostDir);
-            drawCell(field[y][x], isCursor, showShips, isGhost, isValid);
-        }
+    // Координаты сверху (1-10)
+    setCursor(offsetX + 3, offsetY);
+    setColor(yellow, black);
+    for (int j = 1; j <= R; j++) {
+        if (j < 10) cout << " " << j << " ";
+        else cout << j << " ";
     }
+    setColor(white, black);
 
-    if (showFleet) {
-        drawFleetInfo(field, offsetX, offsetY);
+    // Строки поля
+    for (int i = 0; i < R; i++) {
+        setCursor(offsetX, offsetY + 1 + i);
+        setColor(yellow, black);
+        if (i + 1 < 10) cout << " " << i + 1 << " ";
+        else cout << i + 1 << " ";
+        setColor(white, black);
+
+        for (int j = 0; j < R; j++) {
+            bool isCursor = (i == cursorY && j == cursorX && showCrosshair);
+            bool isGhost = showFleet && isGhostCell(i, j, cursorY, cursorX, ghostSize, ghostDir);
+            drawCell(field[i][j], isCursor, showShips, isGhost, isValid);
+        }
     }
 }
 
+// --- Анимации ---
+
 void flashHit(int hy, int hx, int offsetX, int offsetY) {
-    int sx, sy;
-    getCellScreenPos(hy, hx, offsetX, offsetY, sx, sy);
-
-    setColor(yellow, black);
-    setCursor(sx, sy);
-    std::cout << "[!]";
-    playSound(1200, 150);
-    Sleep(100);
-
-    setColor(lightred, black);
-    setCursor(sx, sy);
-    std::cout << "[X]";
-    Sleep(100);
-
-    setColor(red, black);
-    setCursor(sx, sy);
-    std::cout << "[X]";
-    playSound(800, 100);
-    Sleep(100);
+    for (int i = 0; i < 6; i++) {
+        setCursor(offsetX + hx * 3 + 3, offsetY + 1 + hy);
+        if (i % 2 == 0) {
+            setColor(yellow, black);
+            cout << "X";
+            setColor(white, black);
+            cout << " ";
+            playSound(1000 + i * 100, 50);
+        } else {
+            setColor(lightred, black);
+            cout << "X";
+            setColor(white, black);
+            cout << " ";
+        }
+        Sleep(100);
+    }
 }
 
 void flashMiss(int my, int mx, int offsetX, int offsetY) {
-    int sx, sy;
-    getCellScreenPos(my, mx, offsetX, offsetY, sx, sy);
-
-    setColor(lightcyan, black);
-    setCursor(sx, sy);
-    std::cout << " o ";
-    Sleep(50);
-
+    setCursor(offsetX + mx * 3 + 3, offsetY + 1 + my);
     setColor(cyan, black);
-    setCursor(sx, sy);
-    std::cout << " * ";
-    Sleep(50);
-
+    cout << " o ";
+    Sleep(150);
+    setCursor(offsetX + mx * 3 + 3, offsetY + 1 + my);
     setColor(darkgray, black);
-    setCursor(sx, sy);
-    std::cout << " . ";
-    playSound(400, 300);
-    Sleep(50);
-}
-
-void pulseWater(int offsetX, int offsetY) {
-    static bool pulseState = false;
-    Color waterColor = pulseState ? lightcyan : cyan;
-    pulseState = !pulseState;
-
-    for (int y = 0; y < R; y++) {
-        for (int x = 0; x < R; x++) {
-            int sx = offsetX + 3 + x * 3;
-            int sy = offsetY + 2 + y;
-            setCursor(sx, sy);
-            setColor(waterColor, black);
-            std::cout << " ~ ";
-        }
-    }
-    Sleep(200);
+    cout << " * ";
+    playSound(400, 200);
+    Sleep(100);
 }
