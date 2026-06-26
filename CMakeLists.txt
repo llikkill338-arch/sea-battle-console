@@ -10,16 +10,19 @@ if(MSVC)
 endif()
 
 # --- Auto-detect SFML path (Desktop or Downloads) ---
-if(EXISTS "C:/Users/User/Desktop/SFML-2.6.1/lib/cmake/SFML")
-    set(SFML_DIR "C:/Users/User/Desktop/SFML-2.6.1/lib/cmake/SFML")
-elseif(EXISTS "C:/Users/User/Downloads/SFML-2.6.1/lib/cmake/SFML")
-    set(SFML_DIR "C:/Users/User/Downloads/SFML-2.6.1/lib/cmake/SFML")
+if(EXISTS "C:/Users/User/Desktop/SFML-2.6.1/include/SFML/Graphics.hpp")
+    set(SFML_ROOT "C:/Users/User/Desktop/SFML-2.6.1")
+elseif(EXISTS "C:/Users/User/Downloads/SFML-2.6.1/include/SFML/Graphics.hpp")
+    set(SFML_ROOT "C:/Users/User/Downloads/SFML-2.6.1")
 else()
     message(FATAL_ERROR "SFML not found! Install SFML 2.6.1 to Desktop or Downloads.")
 endif()
 
-# Only graphics + window + system -- NO audio DLL needed!
-find_package(SFML 2.6 COMPONENTS graphics window system REQUIRED)
+message(STATUS "SFML found at: ${SFML_ROOT}")
+
+# Manual paths (no find_package needed)
+set(SFML_INCLUDE_DIR "${SFML_ROOT}/include")
+set(SFML_LIB_DIR "${SFML_ROOT}/lib")
 
 set(SOURCES
     src/main.cpp
@@ -39,9 +42,13 @@ set(HEADERS
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+target_include_directories(${PROJECT_NAME} PRIVATE include ${SFML_INCLUDE_DIR})
 
-# Only 3 SFML libs -- NO sfml-audio!
+# Link directories
+target_link_directories(${PROJECT_NAME} PRIVATE ${SFML_LIB_DIR})
+
+# Link SFML: debug (-d suffix) for Debug build, normal for Release
+# Use .lib files (Visual Studio will auto-link correct variant)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     sfml-graphics
     sfml-window
