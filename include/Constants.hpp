@@ -1,5 +1,5 @@
 // ============================================================================
-// Constants.hpp - Все константы игры
+// Constants.hpp - PIRATE v7.0 - All colors are pirate-themed
 // ============================================================================
 
 #pragma once
@@ -14,28 +14,62 @@ const int BOARD_PIXELS = BOARD_SIZE * (CELL_SIZE + CELL_MARGIN);
 // --- Окно ---
 const int WINDOW_WIDTH = 1100;
 const int WINDOW_HEIGHT = 750;
-#define WINDOW_TITLE "Morskoj Boj - SFML"
+#define WINDOW_TITLE "Morskoj Boj - PIRATE v7.0"
 
-// --- Цвета ---
+// --- Пиратская палитра (старая карта, дерево, ром, золото, кровь) ---
 namespace Colors {
-    const sf::Color WATER      (30,  80,  140);
-    const sf::Color WATER_DARK (20,  60,  110);
-    const sf::Color SHIP       (139, 90,  43);
-    const sf::Color SHIP_HIT   (180, 50,  30);
-    const sf::Color HIT        (255, 60,  60);
-    const sf::Color MISS       (200, 200, 220);
-    const sf::Color CURSOR     (255, 255, 0);
-    const sf::Color GRID_LINE  (60,  130, 200);
-    const sf::Color BG         (10,  25,  50);
-    const sf::Color PANEL_BG   (15,  35,  65);
-    const sf::Color TEXT       (230, 230, 250);
-    const sf::Color TEXT_GOLD  (255, 215, 0);
-    const sf::Color GHOST_OK   (50,  200, 80);
-    const sf::Color GHOST_BAD  (255, 50,  50);
-    const sf::Color EXPLOSION  (255, 140, 0);
-    const sf::Color BUTTON     (40,  100, 160);
-    const sf::Color BUTTON_HOVER(60, 140, 220);
-    const sf::Color BUTTON_TEXT(255, 255, 255);
+    // Вода - глубокое тёмное море
+    const sf::Color WATER      (25,  55,  85);
+    const sf::Color WATER_DARK (18,  42,  65);
+
+    // Дощатый настил палубы
+    const sf::Color DECK       (101, 67,  33);
+    const sf::Color DECK_LIGHT (125, 85,  42);
+    const sf::Color DECK_DARK  (78,  52,  26);
+
+    // Корабль - тёмное дерево с гвоздями
+    const sf::Color SHIP       (80,  50,  25);
+    const sf::Color SHIP_HIT   (160, 40,  20);
+
+    // Попадание - кроваво-красный
+    const sf::Color HIT        (200, 35,  35);
+    const sf::Color HIT_CROSS  (230, 200, 150);
+
+    // Промах - старая пуля/песок
+    const sf::Color MISS       (160, 140, 100);
+    const sf::Color MISS_DOT   (120, 105, 75);
+
+    // Курсор - пылающий факел
+    const sf::Color CURSOR     (255, 160, 40);
+
+    // Рамка сетки - бронзовая
+    const sf::Color GRID_LINE  (140, 110, 60);
+
+    // Фон - старая карта / пергамент тёмный
+    const sf::Color BG         (35,  28,  18);
+    const sf::Color BG_MAP     (45,  38,  25);
+
+    // Панель - кожа/пергамент
+    const sf::Color PANEL_BG   (55,  45,  30);
+    const sf::Color PANEL_BORDER(120, 95, 55);
+
+    // Текст - пергаментный белый
+    const sf::Color TEXT       (220, 205, 175);
+    const sf::Color TEXT_GOLD  (230, 190, 65);
+    const sf::Color TEXT_RUM   (160, 100, 45);
+
+    // Призрак корабля
+    const sf::Color GHOST_OK   (60,  160, 60);
+    const sf::Color GHOST_BAD  (180, 40,  40);
+
+    // Кнопки - деревянные
+    const sf::Color BUTTON      (90,  60,  30);
+    const sf::Color BUTTON_HOVER(120, 80,  40);
+    const sf::Color BUTTON_TEXT (230, 210, 170);
+
+    // Пиратский флаг
+    const sf::Color BLACK_FLAG  (15,  15,  15);
+    const sf::Color BONE_WHITE  (210, 200, 185);
 }
 
 // --- Флот ---
