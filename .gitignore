@@ -1,0 +1,16 @@
+# Исполняемые файлы
+*.exe
+
+# Объектные файлы
+*.o
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Системные файлы
+Thumbs.db
+.DS_Store
