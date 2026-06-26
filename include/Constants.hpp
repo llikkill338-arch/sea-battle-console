@@ -1,5 +1,5 @@
 // ============================================================================
-// Constants.hpp - v6.0 Simple colors (works!)
+// Constants.hpp - v7.0 + Hotseat & Split-screen modes
 // ============================================================================
 
 #pragma once
@@ -39,3 +39,11 @@ const int FLEET_SIZES[FLEET_COUNT] = {4, 3, 3, 2, 2, 2, 1, 1, 1, 1};
 
 const float ANIMATION_SPEED = 0.15f;
 const float BOT_THINK_DELAY = 0.8f;
+const float SWITCH_DELAY    = 3.0f;  // 3 seconds player switch screen
+
+// Split-screen layout
+const int SPLIT_BOARD_P1_X = 30;
+const int SPLIT_BOARD_P1_Y = 60;
+const int SPLIT_BOARD_P2_X = 560;
+const int SPLIT_BOARD_P2_Y = 60;
+const int SPLIT_LINE_X = 545;
