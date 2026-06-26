@@ -9,8 +9,14 @@ if(MSVC)
     add_compile_options(/utf-8)
 endif()
 
-# --- Set SFML path ---
-set(SFML_DIR "C:/Users/User/Desktop/SFML-2.6.1/lib/cmake/SFML")
+# --- Auto-detect SFML path (Desktop or Downloads) ---
+if(EXISTS "C:/Users/User/Desktop/SFML-2.6.1/lib/cmake/SFML")
+    set(SFML_DIR "C:/Users/User/Desktop/SFML-2.6.1/lib/cmake/SFML")
+elseif(EXISTS "C:/Users/User/Downloads/SFML-2.6.1/lib/cmake/SFML")
+    set(SFML_DIR "C:/Users/User/Downloads/SFML-2.6.1/lib/cmake/SFML")
+else()
+    message(FATAL_ERROR "SFML not found! Install SFML 2.6.1 to Desktop or Downloads.")
+endif()
 
 # Only graphics + window + system -- NO audio DLL needed!
 find_package(SFML 2.6 COMPONENTS graphics window system REQUIRED)
