@@ -1,5 +1,5 @@
 // ============================================================================
-// Game.cpp - v6.0 Simplified: No audio lib, no pixel art, console Beep sound
+// Game.cpp - v7.0: VsBot + Hotseat 1v1 + Split-screen 1v1
 // ============================================================================
 
 #include "Game.hpp"
@@ -12,9 +12,12 @@
 using namespace Colors;
 
 // ===== UTF-8 Text =====
+// Menu
 #define T_TITLE   u8"\u2620 \u041C\u041E\u0420\u0421\u041A\u041E\u0419 \u0411\u041E\u0419 \u2620"
-#define T_SUB     u8"\u041F\u0438\u0440\u0430\u0442\u0441\u043A\u0430\u044F \u043C\u043E\u0440\u0441\u043A\u0430\u044F \u0431\u0438\u0442\u0432\u0430 v6.0"
-#define T_START   u8"\u041D\u0430\u0447\u0430\u0442\u044C \u0431\u043E\u0439!"
+#define T_SUB     u8"\u041C\u043E\u0440\u0441\u043A\u0430\u044F \u0431\u0438\u0442\u0432\u0430 v7.0"
+#define T_PVE     u8"\u0411\u041E\u0419 \u0441 \u0411\u041E\u0422\u041E\u041C"
+#define T_PVP_H   u8"1\u043D\u04101 \u041D\u0410 \u041E\u0414\u041D\u041E\u041C \u041F\u041A"
+#define T_PVP_S   u8"\u0420\u0410\u0417\u0414\u0415\u041B\u0415\u041D\u041D\u042B\u0419 \u042D\u041A\u0420\u0410\u041D"
 #define T_RULES   u8"\u041A\u0430\u0440\u0442\u0430 \u0441\u043E\u043A\u0440\u043E\u0432\u0438\u0449"
 #define T_SETT    u8"\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"
 #define T_EXIT    u8"\u041F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u043A\u043E\u0440\u0430\u0431\u043B\u044C"
@@ -30,6 +33,7 @@ using namespace Colors;
 #define T_MANUAL  u8"\u0412\u0420\u0423\u0427\u041D\u0423\u042E"
 #define T_ON      u8"\u0412\u041A\u041B"
 #define T_OFF     u8"\u0412\u042B\u041A\u041B"
+// Rules
 #define T_R_TIT   u8"\u041A\u0410\u0420\u0422\u0410 \u0421\u041E\u041A\u0420\u041E\u0412\u0418\u0429"
 #define T_R1      u8"\u0426\u0435\u043B\u044C: \u043F\u043E\u0442\u043E\u043F\u0438\u0442\u044C \u0432\u0435\u0441\u044C \u0444\u043B\u043E\u0442 (20 \u043F\u0430\u043B\u0443\u0431)."
 #define T_R2      u8"\u0424\u043B\u043E\u0442: 1x4, 2x3, 3x2, 4x1 \u043A\u043E\u0440\u0430\u0431\u043B\u044F."
@@ -40,7 +44,10 @@ using namespace Colors;
 #define T_R7      u8"\u041F\u0420\u041E\u0411\u0415\u041B-\u043F\u043E\u0432\u043E\u0440\u043E\u0442 | \u041F\u0435\u0440\u0432\u044B\u0439 \u0445\u043E\u0434 50/50"
 #define T_R8      u8"\u041F\u043E\u0431\u0435\u0436\u0434\u0430\u0435\u0442 \u0442\u043E\u0442, \u043A\u0442\u043E \u043F\u043E\u0442\u043E\u043F\u0438\u0442 20 \u043F\u0430\u043B\u0443\u0431!"
 #define T_PRESS   u8"\u041D\u0430\u0436\u043C\u0438 ENTER \u0438\u043B\u0438 ESC..."
+// Placement
 #define T_PL_TIT  u8"\u0420\u0410\u0421\u0421\u0422\u0410\u041D\u041E\u0412\u041A\u0410 \u0424\u041B\u041E\u0422\u0410"
+#define T_PL_P1   u8"\u0418\u0433\u0440\u043E\u043A 1 - \u0420\u0430\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430"
+#define T_PL_P2   u8"\u0418\u0433\u0440\u043E\u043A 2 - \u0420\u0430\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430"
 #define T_YP      u8"\u0412\u0430\u0448\u0435 \u043F\u043E\u043B\u0435"
 #define T_SHIP    u8"\u041A\u043E\u0440\u0430\u0431\u043B\u044C:"
 #define T_P       u8"-\u043F\u0430\u043B\u0443\u0431\u043D\u044B\u0439"
@@ -52,42 +59,107 @@ using namespace Colors;
 #define T_CTRL    u8"\u0421\u0442\u0440\u0435\u043B\u043A\u0438-\u0434\u0432\u0438\u0436. | \u041F\u0420\u041E\u0411\u0415\u041B-\u043F\u043E\u0432\u043E\u0440\u043E\u0442"
 #define T_CTR2    u8"ENTER-\u043F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C | ESC-\u041C\u0435\u043D\u044E"
 #define T_LEFT    u8"\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C:"
+// Battle
 #define T_BATTLE  u8"\u0411\u041E\u0419 \u0421 \u0411\u041E\u0422\u041E\u041C"
+#define T_P1TURN  u8"\u0425\u041E\u0414 \u0418\u0413\u0420\u041E\u041A\u0410 1"
+#define T_P2TURN  u8"\u0425\u041E\u0414 \u0418\u0413\u0420\u041E\u041A\u0410 2"
 #define T_EP      u8"\u041F\u043E\u043B\u0435 \u0432\u0440\u0430\u0433\u0430"
 #define T_BOT     u8"\u0411\u041E\u0422 \u0414\u0423\u041C\u0410\u0415\u0422..."
 #define T_WIN     u8"\u0412\u042B \u041F\u041E\u0411\u0415\u0414\u0418\u041B\u0418!"
-#define T_WIN2    u8"\u0412\u0441\u0435 \u043A\u043E\u0440\u0430\u0431\u043B\u0438 \u043D\u0430 \u0434\u043D\u0435!"
 #define T_LOSE    u8"\u0412\u042B \u041F\u0420\u041E\u0418\u0413\u0420\u0410\u041B\u0418..."
+#define T_P1WIN   u8"\u0418\u0413\u0420\u041E\u041A 1 \u041F\u041E\u0411\u0415\u0416\u0414\u0410\u0415\u0422!"
+#define T_P2WIN   u8"\u0418\u0413\u0420\u041E\u041A 2 \u041F\u041E\u0411\u0415\u0416\u0414\u0410\u0415\u0422!"
+#define T_P1WIN2  u8"\u0424\u043B\u043E\u0442 \u0418\u0433\u0440\u043E\u043A\u0430 2 \u043F\u043E\u0442\u043E\u043F\u043B\u0435\u043D!"
+#define T_P2WIN2  u8"\u0424\u043B\u043E\u0442 \u0418\u0433\u0440\u043E\u043A\u0430 1 \u043F\u043E\u0442\u043E\u043F\u043B\u0435\u043D!"
+#define T_WIN2    u8"\u0412\u0441\u0435 \u043A\u043E\u0440\u0430\u0431\u043B\u0438 \u043D\u0430 \u0434\u043D\u0435!"
 #define T_LOSE2   u8"\u0412\u0430\u0448 \u0444\u043B\u043E\u0442 \u043F\u043E\u0442\u043E\u043F\u043B\u0435\u043D!"
 #define T_MNU2    u8"ENTER-\u041C\u0435\u043D\u044E | ESC-\u0412\u044B\u0445\u043E\u0434"
 #define T_VY      u8"\u0412\u044B: "
 #define T_VRAG    u8"\u0412\u0440\u0430\u0433: "
+#define T_P1LBL   u8"\u0418\u0433\u0440\u043E\u043A 1: "
+#define T_P2LBL   u8"\u0418\u0433\u0440\u043E\u043A 2: "
 #define T_KOR     u8" \u043A\u043E\u0440."
 #define T_AIM     u8"\u041F\u0440\u0438\u0446\u0435\u043B: "
 #define T_1ST     u8"\u041F\u0435\u0440\u0432\u044B\u0439 \u0445\u043E\u0434: "
 #define T_1YOU    u8"\u0412\u044B!"
 #define T_1BOT    u8"\u0411\u043E\u0442"
+#define T_1P1     u8"\u0418\u0433\u0440\u043E\u043A 1"
+#define T_1P2     u8"\u0418\u0433\u0440\u043E\u043A 2"
 #define T_SUNK    u8"\u041F\u043E\u0442\u043E\u043F\u043B\u0435\u043D\u043E: "
 #define T_DECK    u8"\u041F\u0430\u043B\u0443\u0431: "
 #define T_HINT    u8"\u2191\u2193\u2190\u2192 \u0434\u0432\u0438\u0436. | ENTER-\u0432\u044B\u0441\u0442\u0440\u0435\u043B | ESC"
+// Switch screen
+#define T_SWITCH  u8"\u0421\u041C\u0415\u041D\u0410 \u0418\u0413\u0420\u041E\u041A\u0410"
+#define T_SWITCH1 u8"\u041F\u0435\u0440\u0435\u0434\u0430\u0439 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0434\u0440\u0443\u0433\u043E\u043C\u0443 \u0438\u0433\u0440\u043E\u043A\u0443!"
+#define T_SWITCH2 u8"\u041D\u0435 \u0441\u043C\u043E\u0442\u0440\u0438 \u0432 \u044D\u043A\u0440\u0430\u043D!"
 
+// Board positions
 const float P_BX = 45,  P_BY = 75;
 const float E_BX = 625, E_BY = 75;
 const float INF_X = 45, INF_Y = 545, INF_W = 1040, INF_H = 110;
 
+// ===== PHRASES =====
+std::string getRandomHitPhrase() {
+    const char* p[] = {
+        u8"\u041F\u0440\u044F\u043C\u043E \u0432 \u0446\u0435\u043B\u044C, \u043A\u0430\u043F\u0438\u0442\u0430\u043D!",
+        u8"\u0415\u0449\u0451 \u043E\u0434\u0438\u043D \u043A \u0414\u044D\u0432\u0438 \u0414\u0436\u043E\u043D\u0441\u0443!",
+        u8"\u0410\u0440\u0440\u0440! \u041E\u0433\u043E\u043D\u044C \u0438 \u043F\u043E\u0440\u043E\u0445!",
+        u8"\u041C\u0435\u0442\u043A\u0430\u044F \u043F\u043E\u043F\u0430\u043B!",
+        u8"\u041A\u043E\u0440\u0430\u0431\u043B\u044C \u0433\u043E\u0440\u0438\u0442!",
+        u8"\u0423\u0434\u0430\u0447\u0430 \u043F\u0438\u0440\u0430\u0442\u0430!"
+    };
+    return p[rand() % 6];
+}
+std::string getRandomMissPhrase() {
+    const char* p[] = {
+        u8"\u041C\u0438\u043C\u043E! \u0422\u043E\u043B\u044C\u043A\u043E \u0432\u043E\u043B\u043D\u044B...",
+        u8"\u041C\u043E\u0440\u0441\u043A\u0430\u044F \u043F\u0435\u043D\u0430!",
+        u8"\u041F\u0440\u043E\u043C\u0430\u0445... \u0412\u0435\u0442\u0435\u0440!",
+        u8"\u041D\u0435\u0442! \u0417\u0434\u0435\u0441\u044C \u043F\u0443\u0441\u0442\u043E!",
+        u8"\u0420\u044B\u0431\u044B \u043F\u043B\u0430\u0432\u0430\u044E\u0442...",
+        u8"\u041C\u0438\u043C\u043E! \u0412 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0440\u0430\u0437!"
+    };
+    return p[rand() % 6];
+}
+std::string getRandomSunkPhrase() {
+    const char* p[] = {
+        u8"\u041A\u041E\u0420\u0410\u0411\u041B\u042C \u041D\u0410 \u0414\u041D\u041E!",
+        u8"\u0423\u041D\u0418\u0427\u0422\u041E\u0416\u0415\u041D! \u0410\u0440\u0440\u0440!",
+        u8"\u041F\u043E\u0442\u043E\u043F\u043B\u0435\u043D! \u0422\u0430\u043A \u0435\u043C\u0443!",
+        u8"\u041D\u0430 \u0434\u043D\u043E \u043A\u043E \u0434\u044C\u044F\u0432\u043E\u043B\u0443!",
+        u8"\u0412\u0437\u0440\u044B\u0432! \u041A\u043E\u0440\u0430\u0431\u043B\u044C \u0440\u0430\u0437\u043B\u0435\u0442\u0435\u043B\u0441\u044F!"
+    };
+    return p[rand() % 5];
+}
+std::string getRandomBotHitPhrase() {
+    const char* p[] = {
+        u8"\u0411\u043E\u0442 \u043F\u043E\u043F\u0430\u043B! \u0412 \u0430\u0441 \u0441\u0442\u0440\u0435\u043B\u044F\u044E\u0442!",
+        u8"\u0412\u0440\u0430\u0436\u0435\u0441\u043A\u0430\u044F \u044F\u0434\u0440\u0430!",
+        u8"\u041D\u0430\u0448 \u043A\u043E\u0440\u0430\u0431\u043B\u044C \u043F\u043E\u0434 \u043E\u0431\u0441\u0442\u0440\u0435\u043B\u043E\u043C!",
+        u8"\u0410\u0440\u0440\u0440! \u0412\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B!",
+        u8"\u041A\u043E\u0440\u043F\u0443\u0441 \u0440\u0430\u043D\u0435\u043D!"
+    };
+    return p[rand() % 5];
+}
+
+// ===== CLASS =====
+
 Game::Game()
     : window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), WINDOW_TITLE,
              sf::Style::Close | sf::Style::Titlebar),
-      state(GameState::Menu), cursorR(0), cursorC(0), currentShipIdx(0),
+      state(GameState::Menu), gameMode(GameMode::None),
+      cursorR(0), cursorC(0), currentShipIdx(0),
       placingHorizontal(true), botLevel(0), botThinking(false), botTimer(0),
       soundEnabled(true), autoPlace(false), fullscreen(false), playerTurnFirst(true),
       animTimer(0), menuSelection(0), settingsSelection(0),
+      switchTimer(0), placingP2(false), cursorP2R(0), cursorP2C(0),
       botDirIndex(0), botHunting(false) {
     srand((unsigned)time(nullptr));
     window.setFramerateLimit(60);
     loadResources();
     playerBoard = std::make_unique<Board>(P_BX, P_BY, false);
-    enemyBoard = std::make_unique<Board>(E_BX, E_BY, true);
+    enemyBoard  = std::make_unique<Board>(E_BX, E_BY, true);
+    boardP2     = std::make_unique<Board>(E_BX, E_BY, true);
 }
 
 Game::~Game() {}
@@ -135,11 +207,7 @@ void Game::loadResources() {
 void Game::playHitSound()   { if (soundEnabled) Beep(800, 150); }
 void Game::playMissSound()  { if (soundEnabled) Beep(300, 300); }
 void Game::playSunkSound()  {
-    if (soundEnabled) {
-        Beep(1200, 100);
-        Beep(900, 100);
-        Beep(600, 200);
-    }
+    if (soundEnabled) { Beep(1200, 100); Beep(900, 100); Beep(600, 200); }
 }
 
 void Game::applyFullscreen() {
@@ -147,6 +215,10 @@ void Game::applyFullscreen() {
     if (fullscreen) window.create(sf::VideoMode::getDesktopMode(), WINDOW_TITLE, sf::Style::Fullscreen);
     else window.create(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), WINDOW_TITLE, sf::Style::Close | sf::Style::Titlebar);
     window.setFramerateLimit(60);
+}
+
+void Game::addMessage(const std::string& text, sf::Color color) {
+    messages.push_back({text, 2.5f, color});
 }
 
 void Game::run() {
@@ -160,55 +232,7 @@ void Game::run() {
     }
 }
 
-void Game::addMessage(const std::string& text, sf::Color color) {
-    messages.push_back({text, 2.5f, color});
-}
-
-std::string getRandomHitPhrase() {
-    const char* p[] = {
-        u8"\u041F\u0440\u044F\u043C\u043E \u0432 \u0446\u0435\u043B\u044C, \u043A\u0430\u043F\u0438\u0442\u0430\u043D!",
-        u8"\u0415\u0449\u0451 \u043E\u0434\u0438\u043D \u043A \u0414\u044D\u0432\u0438 \u0414\u0436\u043E\u043D\u0441\u0443!",
-        u8"\u0410\u0440\u0440\u0440! \u041E\u0433\u043E\u043D\u044C \u0438 \u043F\u043E\u0440\u043E\u0445!",
-        u8"\u041C\u0435\u0442\u043A\u0430\u044F \u043F\u043E\u043F\u0430\u043B!",
-        u8"\u041A\u043E\u0440\u0430\u0431\u043B\u044C \u0433\u043E\u0440\u0438\u0442!",
-        u8"\u0423\u0434\u0430\u0447\u0430 \u043F\u0438\u0440\u0430\u0442\u0430!"
-    };
-    return p[rand() % 6];
-}
-
-std::string getRandomMissPhrase() {
-    const char* p[] = {
-        u8"\u041C\u0438\u043C\u043E! \u0422\u043E\u043B\u044C\u043A\u043E \u0432\u043E\u043B\u043D\u044B...",
-        u8"\u041C\u043E\u0440\u0441\u043A\u0430\u044F \u043F\u0435\u043D\u0430!",
-        u8"\u041F\u0440\u043E\u043C\u0430\u0445... \u0412\u0435\u0442\u0435\u0440!",
-        u8"\u041D\u0435\u0442! \u0417\u0434\u0435\u0441\u044C \u043F\u0443\u0441\u0442\u043E!",
-        u8"\u0420\u044B\u0431\u044B \u043F\u043B\u0430\u0432\u0430\u044E\u0442...",
-        u8"\u041C\u0438\u043C\u043E! \u0412 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0440\u0430\u0437!"
-    };
-    return p[rand() % 6];
-}
-
-std::string getRandomSunkPhrase() {
-    const char* p[] = {
-        u8"\u041A\u041E\u0420\u0410\u0411\u041B\u042C \u041D\u0410 \u0414\u041D\u041E!",
-        u8"\u0423\u041D\u0418\u0427\u0422\u041E\u0416\u0415\u041D! \u0410\u0440\u0440\u0440!",
-        u8"\u041F\u043E\u0442\u043E\u043F\u043B\u0435\u043D! \u0422\u0430\u043A \u0435\u043C\u0443!",
-        u8"\u041D\u0430 \u0434\u043D\u043E \u043A\u043E \u0434\u044C\u044F\u0432\u043E\u043B\u0443!",
-        u8"\u0412\u0437\u0440\u044B\u0432! \u041A\u043E\u0440\u0430\u0431\u043B\u044C \u0440\u0430\u0437\u043B\u0435\u0442\u0435\u043B\u0441\u044F!"
-    };
-    return p[rand() % 5];
-}
-
-std::string getRandomBotHitPhrase() {
-    const char* p[] = {
-        u8"\u0411\u043E\u0442 \u043F\u043E\u043F\u0430\u043B! \u0412 \u0430\u0441 \u0441\u0442\u0440\u0435\u043B\u044F\u044E\u0442!",
-        u8"\u0412\u0440\u0430\u0436\u0435\u0441\u043A\u0430\u044F \u044F\u0434\u0440\u0430!",
-        u8"\u041D\u0430\u0448 \u043A\u043E\u0440\u0430\u0431\u043B\u044C \u043F\u043E\u0434 \u043E\u0431\u0441\u0442\u0440\u0435\u043B\u043E\u043C!",
-        u8"\u0410\u0440\u0440\u0440! \u0412\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B!",
-        u8"\u041A\u043E\u0440\u043F\u0443\u0441 \u0440\u0430\u043D\u0435\u043D!"
-    };
-    return p[rand() % 5];
-}
+// ===== EVENTS =====
 
 void Game::handleEvents() {
     sf::Event event;
@@ -216,18 +240,22 @@ void Game::handleEvents() {
         if (event.type == sf::Event::Closed) state = GameState::Exit;
 
         if (event.type == sf::Event::KeyPressed) {
+            // ===== MENU =====
             if (state == GameState::Menu) {
                 if (event.key.code == sf::Keyboard::Up && menuSelection > 0) menuSelection--;
-                if (event.key.code == sf::Keyboard::Down && menuSelection < 3) menuSelection++;
+                if (event.key.code == sf::Keyboard::Down && menuSelection < 5) menuSelection++;
                 if (event.key.code == sf::Keyboard::Enter) {
                     switch (menuSelection) {
-                        case 0: startPlacement(); break;
-                        case 1: state = GameState::Rules; break;
-                        case 2: state = GameState::Settings; break;
-                        case 3: state = GameState::Exit; break;
+                        case 0: gameMode = GameMode::VsBot; startPlacement(); break;
+                        case 1: gameMode = GameMode::Hotseat; startPlacement(); break;
+                        case 2: gameMode = GameMode::Splitscreen; startPlacement(); break;
+                        case 3: state = GameState::Rules; break;
+                        case 4: state = GameState::Settings; break;
+                        case 5: state = GameState::Exit; break;
                     }
                 }
             }
+            // ===== SETTINGS =====
             else if (state == GameState::Settings) {
                 if (event.key.code == sf::Keyboard::Up && settingsSelection > 0) settingsSelection--;
                 if (event.key.code == sf::Keyboard::Down && settingsSelection < 4) settingsSelection++;
@@ -240,10 +268,12 @@ void Game::handleEvents() {
                 if (event.key.code == sf::Keyboard::Enter && settingsSelection == 4) state = GameState::Menu;
                 if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
             }
+            // ===== RULES =====
             else if (state == GameState::Rules) {
                 if (event.key.code == sf::Keyboard::Escape || event.key.code == sf::Keyboard::Enter)
                     state = GameState::Menu;
             }
+            // ===== P1 PLACEMENT =====
             else if (state == GameState::Placement) {
                 int size = FLEET_SIZES[currentShipIdx];
                 if (event.key.code == sf::Keyboard::Up && cursorR > 0) cursorR--;
@@ -259,12 +289,43 @@ void Game::handleEvents() {
                     if (playerBoard->canPlaceShip(cursorR, cursorC, size, placingHorizontal)) {
                         playerBoard->placeShip(cursorR, cursorC, size, placingHorizontal);
                         currentShipIdx++;
-                        if (currentShipIdx >= FLEET_COUNT) startBattle();
+                        if (currentShipIdx >= FLEET_COUNT) {
+                            if (gameMode == GameMode::VsBot) {
+                                startBattle();
+                            } else {
+                                startP2Placement();
+                            }
+                        }
                     }
                 }
                 if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
             }
-            else if (state == GameState::Battle) {
+            // ===== P2 PLACEMENT =====
+            else if (state == GameState::P2Placement) {
+                int size = FLEET_SIZES[currentShipIdx];
+                if (event.key.code == sf::Keyboard::Up && cursorR > 0) cursorR--;
+                if (event.key.code == sf::Keyboard::Down && cursorR < BOARD_SIZE - 1) cursorR++;
+                if (event.key.code == sf::Keyboard::Left && cursorC > 0) cursorC--;
+                if (event.key.code == sf::Keyboard::Right && cursorC < BOARD_SIZE - 1) cursorC++;
+                if (event.key.code == sf::Keyboard::Space) {
+                    placingHorizontal = !placingHorizontal;
+                    if (placingHorizontal) { if (cursorC + size > BOARD_SIZE) cursorC = BOARD_SIZE - size; }
+                    else { if (cursorR + size > BOARD_SIZE) cursorR = BOARD_SIZE - size; }
+                }
+                if (event.key.code == sf::Keyboard::Enter) {
+                    if (boardP2->canPlaceShip(cursorR, cursorC, size, placingHorizontal)) {
+                        boardP2->placeShip(cursorR, cursorC, size, placingHorizontal);
+                        currentShipIdx++;
+                        if (currentShipIdx >= FLEET_COUNT) {
+                            if (gameMode == GameMode::Hotseat) startP1Turn();
+                            else startSplitscreenBattle();
+                        }
+                    }
+                }
+                if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
+            }
+            // ===== VsBot BATTLE =====
+            else if (state == GameState::Battle && gameMode == GameMode::VsBot) {
                 if (event.key.code == sf::Keyboard::Up && cursorR > 0) cursorR--;
                 if (event.key.code == sf::Keyboard::Down && cursorR < BOARD_SIZE - 1) cursorR++;
                 if (event.key.code == sf::Keyboard::Left && cursorC > 0) cursorC--;
@@ -275,7 +336,6 @@ void Game::handleEvents() {
                         int shipsBefore = enemyBoard->getShipsAlive();
                         bool hit = enemyBoard->shoot(cursorR, cursorC);
                         int shipsAfter = enemyBoard->getShipsAlive();
-
                         if (hit) {
                             if (shipsAfter < shipsBefore) {
                                 addMessage(getRandomSunkPhrase(), sf::Color(255, 140, 0));
@@ -288,25 +348,116 @@ void Game::handleEvents() {
                             addMessage(getRandomMissPhrase(), sf::Color(150, 200, 255));
                             playMissSound();
                         }
-
-                        if (enemyBoard->allShipsSunk()) {
-                            state = GameState::Victory;
-                        } else if (!hit) {
-                            state = GameState::BotTurn;
-                            botTimer = 0;
-                            botThinking = true;
-                        }
+                        if (enemyBoard->allShipsSunk()) state = GameState::Victory;
+                        else if (!hit) { state = GameState::BotTurn; botTimer = 0; botThinking = true; }
                     }
                 }
                 if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
             }
-            else if (state == GameState::Victory || state == GameState::Defeat) {
+            // ===== 1v1 P1 TURN (Hotseat & Split-screen) =====
+            else if (state == GameState::P1Turn) {
+                if (event.key.code == sf::Keyboard::Up && cursorR > 0) cursorR--;
+                if (event.key.code == sf::Keyboard::Down && cursorR < BOARD_SIZE - 1) cursorR++;
+                if (event.key.code == sf::Keyboard::Left && cursorC > 0) cursorC--;
+                if (event.key.code == sf::Keyboard::Right && cursorC < BOARD_SIZE - 1) cursorC++;
+                if (event.key.code == sf::Keyboard::Enter) handleP1Shoot();
+                if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
+            }
+            // ===== 1v1 P2 TURN (Hotseat & Split-screen) =====
+            else if (state == GameState::P2Turn) {
+                if (event.key.code == sf::Keyboard::Up && cursorP2R > 0) cursorP2R--;
+                if (event.key.code == sf::Keyboard::Down && cursorP2R < BOARD_SIZE - 1) cursorP2R++;
+                if (event.key.code == sf::Keyboard::Left && cursorP2C > 0) cursorP2C--;
+                if (event.key.code == sf::Keyboard::Right && cursorP2C < BOARD_SIZE - 1) cursorP2C++;
+                if (event.key.code == sf::Keyboard::Enter) handleP2Shoot();
+                if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
+            }
+            // ===== SPLIT-SCREEN BATTLE =====
+            else if (state == GameState::SplitscreenBattle) {
+                if (playerTurnFirst) {
+                    if (event.key.code == sf::Keyboard::Up && cursorR > 0) cursorR--;
+                    if (event.key.code == sf::Keyboard::Down && cursorR < BOARD_SIZE - 1) cursorR++;
+                    if (event.key.code == sf::Keyboard::Left && cursorC > 0) cursorC--;
+                    if (event.key.code == sf::Keyboard::Right && cursorC < BOARD_SIZE - 1) cursorC++;
+                    if (event.key.code == sf::Keyboard::Enter) handleP1Shoot();
+                } else {
+                    if (event.key.code == sf::Keyboard::Up && cursorP2R > 0) cursorP2R--;
+                    if (event.key.code == sf::Keyboard::Down && cursorP2R < BOARD_SIZE - 1) cursorP2R++;
+                    if (event.key.code == sf::Keyboard::Left && cursorP2C > 0) cursorP2C--;
+                    if (event.key.code == sf::Keyboard::Right && cursorP2C < BOARD_SIZE - 1) cursorP2C++;
+                    if (event.key.code == sf::Keyboard::Enter) handleP2Shoot();
+                }
+                if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
+            }
+            // ===== RESULT SCREENS =====
+            else if (state == GameState::Victory || state == GameState::Defeat ||
+                     state == GameState::P1Victory || state == GameState::P2Victory) {
                 if (event.key.code == sf::Keyboard::Enter) { resetGame(); state = GameState::Menu; }
                 if (event.key.code == sf::Keyboard::Escape) state = GameState::Menu;
             }
         }
     }
 }
+
+// ===== SHOOTING HELPERS =====
+
+void Game::handleP1Shoot() {
+    Board* target = boardP2.get();
+    CellState cs = target->getCellState(cursorR, cursorC);
+    if (cs == CellState::Hit || cs == CellState::Miss) return;
+    int shipsBefore = target->getShipsAlive();
+    bool hit = target->shoot(cursorR, cursorC);
+    int shipsAfter = target->getShipsAlive();
+    if (hit) {
+        if (shipsAfter < shipsBefore) {
+            addMessage(getRandomSunkPhrase(), sf::Color(255, 140, 0)); playSunkSound();
+        } else {
+            addMessage(getRandomHitPhrase(), sf::Color(255, 80, 80)); playHitSound();
+        }
+    } else {
+        addMessage(getRandomMissPhrase(), sf::Color(150, 200, 255)); playMissSound();
+    }
+    if (target->allShipsSunk()) {
+        state = GameState::P1Victory;
+    } else if (!hit) {
+        if (gameMode == GameMode::Hotseat) {
+            state = GameState::SwitchScreen; switchTimer = 0;
+        } else if (gameMode == GameMode::Splitscreen) {
+            playerTurnFirst = false;
+        }
+    }
+}
+
+void Game::handleP2Shoot() {
+    Board* target = playerBoard.get();
+    int cr = cursorP2R;
+    int cc = cursorP2C;
+    CellState cs = target->getCellState(cr, cc);
+    if (cs == CellState::Hit || cs == CellState::Miss) return;
+    int shipsBefore = target->getShipsAlive();
+    bool hit = target->shoot(cr, cc);
+    int shipsAfter = target->getShipsAlive();
+    if (hit) {
+        if (shipsAfter < shipsBefore) {
+            addMessage(getRandomSunkPhrase(), sf::Color(255, 140, 0)); playSunkSound();
+        } else {
+            addMessage(getRandomHitPhrase(), sf::Color(255, 80, 80)); playHitSound();
+        }
+    } else {
+        addMessage(getRandomMissPhrase(), sf::Color(150, 200, 255)); playMissSound();
+    }
+    if (target->allShipsSunk()) {
+        state = GameState::P2Victory;
+    } else if (!hit) {
+        if (gameMode == GameMode::Hotseat) {
+            state = GameState::SwitchScreen; switchTimer = 0;
+        } else if (gameMode == GameMode::Splitscreen) {
+            playerTurnFirst = true;
+        }
+    }
+}
+
+// ===== UPDATE =====
 
 void Game::update(float dt) {
     for (auto& m : messages) m.timer -= dt;
@@ -319,26 +470,26 @@ void Game::update(float dt) {
             int shipsBefore = playerBoard->getShipsAlive();
             botMakeMove();
             int shipsAfter = playerBoard->getShipsAlive();
-
             if (shipsAfter < shipsBefore) {
-                addMessage(getRandomSunkPhrase(), sf::Color(255, 140, 0));
-                playSunkSound();
+                addMessage(getRandomSunkPhrase(), sf::Color(255, 140, 0)); playSunkSound();
             } else if (!botTargets.empty() && botHunting) {
-                addMessage(getRandomBotHitPhrase(), sf::Color(255, 100, 100));
-                playHitSound();
-            } else {
-                playMissSound();
-            }
-
+                addMessage(getRandomBotHitPhrase(), sf::Color(255, 100, 100)); playHitSound();
+            } else { playMissSound(); }
             botThinking = false;
-            if (playerBoard->allShipsSunk()) {
-                state = GameState::Defeat;
-            } else {
-                state = GameState::Battle;
-            }
+            if (playerBoard->allShipsSunk()) state = GameState::Defeat;
+            else state = GameState::Battle;
+        }
+    }
+    if (state == GameState::SwitchScreen) {
+        switchTimer += dt;
+        if (switchTimer >= SWITCH_DELAY) {
+            if (playerTurnFirst) state = GameState::P2Turn;
+            else state = GameState::P1Turn;
         }
     }
 }
+
+// ===== BOT AI =====
 
 void Game::botMakeMove() {
     if (botLevel == 0) {
@@ -349,8 +500,7 @@ void Game::botMakeMove() {
         playerBoard->shoot(r, c);
     } else {
         if (botHunting && !botTargets.empty()) {
-            int tr = botTargets[0].first;
-            int tc = botTargets[0].second;
+            int tr = botTargets[0].first, tc = botTargets[0].second;
             if (botTargets.size() >= 2) {
                 bool horizontal = botTargets[0].first == botTargets[1].first;
                 int minR = tr, maxR = tr, minC = tc, maxC = tc;
@@ -359,13 +509,10 @@ void Game::botMakeMove() {
                     minC = std::min(minC, t.second); maxC = std::max(maxC, t.second);
                 }
                 int nr, nc;
-                if (horizontal) {
-                    nr = tr; nc = maxC + 1;
-                    if (nc >= BOARD_SIZE || playerBoard->getCellState(nr, nc) == CellState::Miss) nc = minC - 1;
-                } else {
-                    nr = maxR + 1; nc = tc;
-                    if (nr >= BOARD_SIZE || playerBoard->getCellState(nr, nc) == CellState::Miss) nr = minR - 1;
-                }
+                if (horizontal) { nr = tr; nc = maxC + 1;
+                    if (nc >= BOARD_SIZE || playerBoard->getCellState(nr, nc) == CellState::Miss) nc = minC - 1; }
+                else { nr = maxR + 1; nc = tc;
+                    if (nr >= BOARD_SIZE || playerBoard->getCellState(nr, nc) == CellState::Miss) nr = minR - 1; }
                 if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE &&
                     playerBoard->getCellState(nr, nc) != CellState::Hit &&
                     playerBoard->getCellState(nr, nc) != CellState::Miss) {
@@ -388,15 +535,12 @@ void Game::botMakeMove() {
                     return;
                 }
             }
-            botHunting = false;
-            botTargets.clear();
-            botDirIndex = 0;
+            botHunting = false; botTargets.clear(); botDirIndex = 0;
         }
         if (!botHunting) {
             int r, c, attempts = 0;
-            do {
-                r = rand() % BOARD_SIZE; c = rand() % BOARD_SIZE; attempts++;
-            } while (attempts < 300 && ((r + c) % 2 != 0 ||
+            do { r = rand() % BOARD_SIZE; c = rand() % BOARD_SIZE; attempts++; }
+            while (attempts < 300 && ((r + c) % 2 != 0 ||
                      playerBoard->getCellState(r, c) == CellState::Hit ||
                      playerBoard->getCellState(r, c) == CellState::Miss));
             if (attempts >= 300) {
@@ -405,73 +549,108 @@ void Game::botMakeMove() {
                        playerBoard->getCellState(r, c) == CellState::Miss);
             }
             bool hit = playerBoard->shoot(r, c);
-            if (hit) {
-                botHunting = true;
-                botTargets.clear();
-                botTargets.push_back({r, c});
-                botDirIndex = 0;
-            }
+            if (hit) { botHunting = true; botTargets.clear(); botTargets.push_back({r, c}); botDirIndex = 0; }
         }
     }
 }
 
+// ===== GAME FLOW =====
+
 void Game::startPlacement() {
+    playerBoard->clear();
+    if (gameMode == GameMode::VsBot) {
+        enemyBoard->clear(); enemyBoard->autoPlace();
+    } else {
+        boardP2->clear();
+    }
     state = GameState::Placement;
-    playerBoard->clear(); enemyBoard->clear();
-    enemyBoard->autoPlace();
-    currentShipIdx = 0; cursorR = 0; cursorC = 0; placingHorizontal = true;
+    currentShipIdx = 0; cursorR = 0; cursorC = 0; placingHorizontal = true; placingP2 = false;
     messages.clear();
-    if (autoPlace) { playerBoard->autoPlace(); startBattle(); }
+    if (autoPlace && gameMode == GameMode::VsBot) {
+        playerBoard->autoPlace(); startBattle();
+    }
+}
+
+void Game::startP2Placement() {
+    state = GameState::P2Placement;
+    currentShipIdx = 0; cursorR = 0; cursorC = 0; placingHorizontal = true; placingP2 = true;
 }
 
 void Game::startBattle() {
-    state = GameState::Battle;
-    cursorR = 0; cursorC = 0; botThinking = false;
-    botTargets.clear(); botHunting = false; botDirIndex = 0;
+    state = GameState::Battle; cursorR = 0; cursorC = 0;
+    botThinking = false; botTargets.clear(); botHunting = false; botDirIndex = 0;
+    messages.clear();
+}
+
+void Game::startP1Turn() {
+    state = GameState::P1Turn; cursorR = 0; cursorC = 0;
+    cursorP2R = 0; cursorP2C = 0;
+    messages.clear(); playerTurnFirst = true;
+}
+
+void Game::startP2Turn() {
+    state = GameState::P2Turn; cursorP2R = 0; cursorP2C = 0;
+    messages.clear(); playerTurnFirst = false;
+}
+
+void Game::startSplitscreenBattle() {
+    state = GameState::SplitscreenBattle;
+    cursorR = 0; cursorC = 0; cursorP2R = 0; cursorP2C = 0;
     messages.clear();
     playerTurnFirst = (rand() % 2 == 0);
-    if (!playerTurnFirst) { state = GameState::BotTurn; botTimer = 0; botThinking = true; }
 }
 
 void Game::resetGame() {
-    playerBoard->clear(); enemyBoard->clear();
-    cursorR = 0; cursorC = 0; currentShipIdx = 0; menuSelection = 0;
+    playerBoard->clear(); enemyBoard->clear(); boardP2->clear();
+    cursorR = 0; cursorC = 0; cursorP2R = 0; cursorP2C = 0;
+    currentShipIdx = 0; menuSelection = 0;
     botTargets.clear(); botHunting = false; botDirIndex = 0;
-    messages.clear();
+    messages.clear(); gameMode = GameMode::None;
 }
+
+// ===== RENDERING =====
 
 void Game::render() {
     window.clear(BG);
     switch (state) {
-        case GameState::Menu:      renderMenu(); break;
-        case GameState::Settings:  renderSettings(); break;
-        case GameState::Rules:     renderRules(); break;
-        case GameState::Placement: renderPlacement(); break;
-        case GameState::Battle:    renderBattle(); break;
-        case GameState::BotTurn:   renderBotTurn(); break;
-        case GameState::Victory:   renderVictory(); break;
-        case GameState::Defeat:    renderDefeat(); break;
+        case GameState::Menu:              renderMenu(); break;
+        case GameState::Settings:          renderSettings(); break;
+        case GameState::Rules:             renderRules(); break;
+        case GameState::Placement:         renderPlacement(); break;
+        case GameState::P2Placement:       renderPlacementP2(); break;
+        case GameState::SwitchScreen:      renderSwitchScreen(); break;
+        case GameState::Battle:            renderBattle(); break;
+        case GameState::BotTurn:           renderBotTurn(); break;
+        case GameState::P1Turn:            renderP1Turn(); break;
+        case GameState::P2Turn:            renderP2Turn(); break;
+        case GameState::SplitscreenBattle: renderSplitscreenBattle(); break;
+        case GameState::Victory:           renderVictory(); break;
+        case GameState::Defeat:            renderDefeat(); break;
+        case GameState::P1Victory:         renderP1Wins(); break;
+        case GameState::P2Victory:         renderP2Wins(); break;
         default: break;
     }
     window.display();
 }
 
+// ===== MENU (6 buttons) =====
+
 void Game::renderMenu() {
-    drawText(T_TITLE, WINDOW_WIDTH / 2, 70, 52, TEXT_GOLD, true);
-    drawText(T_SUB, WINDOW_WIDTH / 2, 130, 18, sf::Color(180, 160, 100), true);
+    drawText(T_TITLE, WINDOW_WIDTH / 2, 50, 52, TEXT_GOLD, true);
+    drawText(T_SUB, WINDOW_WIDTH / 2, 110, 18, sf::Color(180, 160, 100), true);
 
     sf::RectangleShape sep(sf::Vector2f(400, 2));
-    sep.setPosition(WINDOW_WIDTH / 2 - 200, 165);
+    sep.setPosition(WINDOW_WIDTH / 2 - 200, 145);
     sep.setFillColor(GRID_LINE);
     window.draw(sep);
 
-    const char* buttons[] = { T_START, T_RULES, T_SETT, T_EXIT };
-    for (int i = 0; i < 4; i++) {
-        float y = 200 + i * 72;
-        drawButton(buttons[i], WINDOW_WIDTH / 2 - 150, y, 300, 52, false, i == menuSelection);
+    const char* buttons[] = { T_PVE, T_PVP_H, T_PVP_S, T_RULES, T_SETT, T_EXIT };
+    for (int i = 0; i < 6; i++) {
+        float y = 170 + i * 65;
+        drawButton(buttons[i], WINDOW_WIDTH / 2 - 180, y, 360, 50, false, i == menuSelection);
     }
     drawText(u8"\u0421\u0442\u0440\u0435\u043B\u043A\u0438 ^/v - \u0432\u044B\u0431\u043E\u0440  |  ENTER - \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044C",
-             WINDOW_WIDTH / 2, 530, 16, sf::Color(140, 140, 160), true);
+             WINDOW_WIDTH / 2, 580, 16, sf::Color(140, 140, 160), true);
 }
 
 void Game::renderSettings() {
@@ -508,8 +687,11 @@ void Game::renderRules() {
     drawText(u8"\u041F\u0438\u0440\u0430\u0442\u0441\u043A\u0438\u0435 \u0437\u0430\u043A\u043E\u043D\u044B:", 80, 85, 18, sf::Color(200, 160, 80), false);
 }
 
+// ===== P1 PLACEMENT =====
+
 void Game::renderPlacement() {
-    drawText(T_PL_TIT, WINDOW_WIDTH / 2, 15, 26, TEXT_GOLD, true);
+    const char* title = (gameMode == GameMode::VsBot) ? T_PL_TIT : T_PL_P1;
+    drawText(title, WINDOW_WIDTH / 2, 15, 26, TEXT_GOLD, true);
     int size = FLEET_SIZES[currentShipIdx];
     bool valid = playerBoard->canPlaceShip(cursorR, cursorC, size, placingHorizontal);
     playerBoard->draw(window, font, cursorR, cursorC, true, size, placingHorizontal, valid);
@@ -548,22 +730,91 @@ void Game::renderPlacement() {
     }
 }
 
+// ===== P2 PLACEMENT =====
+
+void Game::renderPlacementP2() {
+    drawText(T_PL_P2, WINDOW_WIDTH / 2, 15, 26, TEXT_GOLD, true);
+    int size = FLEET_SIZES[currentShipIdx];
+    bool valid = boardP2->canPlaceShip(cursorR, cursorC, size, placingHorizontal);
+    boardP2->draw(window, font, cursorR, cursorC, true, size, placingHorizontal, valid);
+    drawText(u8"\u041F\u043E\u043B\u0435 \u0418\u0433\u0440\u043E\u043A\u0430 2", P_BX + BOARD_PIXELS / 2 + 20, 50, 18, sf::Color(100, 255, 150), true);
+
+    float px = P_BX + BOARD_PIXELS + 55;
+    sf::RectangleShape panel(sf::Vector2f(260, 430));
+    panel.setPosition(px, P_BY);
+    panel.setFillColor(PANEL_BG);
+    panel.setOutlineColor(GRID_LINE);
+    panel.setOutlineThickness(1);
+    window.draw(panel);
+
+    drawText(T_SHIP, px + 15, P_BY + 15, 20, TEXT, false);
+    drawText(std::to_string(size) + T_P, px + 15, P_BY + 42, 22, TEXT_GOLD, false);
+    drawText(T_DIR, px + 15, P_BY + 80, 16, TEXT, false);
+    drawText(placingHorizontal ? T_HOR : T_VER, px + 15, P_BY + 100, 16, sf::Color(100, 200, 255), false);
+    if (valid) drawText(T_OK, px + 15, P_BY + 135, 16, sf::Color(50, 200, 80), false);
+    else       drawText(T_BAD, px + 15, P_BY + 135, 16, sf::Color(255, 80, 80), false);
+
+    drawText(T_CTRL, px + 15, P_BY + 180, 14, sf::Color(150, 150, 170), false);
+    drawText(T_CTR2, px + 15, P_BY + 200, 14, sf::Color(150, 150, 170), false);
+
+    drawText(std::to_string(currentShipIdx) + " / " + std::to_string(FLEET_COUNT), px + 15, P_BY + 250, 20, TEXT_GOLD, false);
+    drawText(T_LEFT, px + 15, P_BY + 280, 15, sf::Color(150, 150, 170), false);
+
+    int yPos = P_BY + 305, counts[5] = {0,0,0,0,0};
+    for (int i = currentShipIdx; i < FLEET_COUNT; i++) { int s = FLEET_SIZES[i]; if (s >= 1 && s <= 4) counts[4-s]++; }
+    for (int deck = 4; deck >= 1; deck--) {
+        int cnt = counts[4 - deck];
+        if (cnt > 0) {
+            std::string line = std::to_string(cnt) + " x " + std::string(deck, '=') + " (" + std::to_string(deck) + "p)";
+            drawText(line, px + 15, yPos, 14, sf::Color(100, 180, 255), false);
+            yPos += 18;
+        }
+    }
+    drawText(u8"\u041D\u0415 \u0441\u043C\u043E\u0442\u0440\u0438, \u0418\u0433\u0440\u043E\u043A 1!", px + 15, P_BY + 380, 16, sf::Color(255, 80, 80), false);
+}
+
+// ===== SWITCH SCREEN (3 sec) =====
+
+void Game::renderSwitchScreen() {
+    window.clear(sf::Color(5, 10, 25));
+    sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+    overlay.setFillColor(sf::Color(0, 0, 0, 180));
+    window.draw(overlay);
+
+    drawText(T_SWITCH, WINDOW_WIDTH / 2, 200, 48, TEXT_GOLD, true);
+    drawText(T_SWITCH1, WINDOW_WIDTH / 2, 300, 28, TEXT, true);
+    drawText(T_SWITCH2, WINDOW_WIDTH / 2, 350, 24, sf::Color(255, 100, 100), true);
+
+    int secsLeft = (int)(SWITCH_DELAY - switchTimer) + 1;
+    drawText(std::to_string(secsLeft), WINDOW_WIDTH / 2, 450, 72, sf::Color(100, 200, 255), true);
+
+    float progress = switchTimer / SWITCH_DELAY;
+    sf::RectangleShape barBg(sf::Vector2f(400, 20));
+    barBg.setPosition(WINDOW_WIDTH / 2 - 200, 540);
+    barBg.setFillColor(sf::Color(40, 40, 60));
+    barBg.setOutlineColor(GRID_LINE);
+    barBg.setOutlineThickness(2);
+    window.draw(barBg);
+    sf::RectangleShape bar(sf::Vector2f(400 * progress, 20));
+    bar.setPosition(WINDOW_WIDTH / 2 - 200, 540);
+    bar.setFillColor(sf::Color(60, 160, 240));
+    window.draw(bar);
+}
+
+// ===== VsBot BATTLE =====
+
 void Game::renderBattle() {
     drawText(T_BATTLE, WINDOW_WIDTH / 2, 12, 24, TEXT_GOLD, true);
     drawText(T_YP, P_BX + BOARD_PIXELS / 2 + 20, 50, 17, sf::Color(100, 255, 150), true);
     drawText(T_EP, E_BX + BOARD_PIXELS / 2 + 20, 50, 17, sf::Color(255, 120, 100), true);
-
     playerBoard->draw(window, font, -1, -1, true, 0, true, true);
     enemyBoard->draw(window, font, cursorR, cursorC, false, 0, true, true);
-
     drawInfoPanel();
-
     if (!messages.empty()) {
         float msgY = 540;
         for (auto& m : messages) {
             float alpha = std::min(1.0f, m.timer);
-            sf::Color c = m.color;
-            c.a = (sf::Uint8)(255 * alpha);
+            sf::Color c = m.color; c.a = (sf::Uint8)(255 * alpha);
             drawText(m.text, WINDOW_WIDTH / 2, msgY, 20, c, true);
             msgY -= 26;
         }
@@ -581,6 +832,112 @@ void Game::renderBotTurn() {
     drawText(std::string(dots, '.'), E_BX + BOARD_PIXELS / 2 + 20, E_BY + BOARD_PIXELS / 2 + 20, 28, sf::Color(255, 200, 50), true);
 }
 
+// ===== 1v1 P1 TURN =====
+
+void Game::renderP1Turn() {
+    drawText(T_P1TURN, WINDOW_WIDTH / 2, 12, 24, sf::Color(100, 255, 150), true);
+    drawText(T_YP, P_BX + BOARD_PIXELS / 2 + 20, 50, 17, sf::Color(100, 255, 150), true);
+    drawText(u8"\u041F\u043E\u043B\u0435 \u0418\u0433\u0440\u043E\u043A\u0430 2", E_BX + BOARD_PIXELS / 2 + 20, 50, 17, sf::Color(255, 120, 100), true);
+    playerBoard->draw(window, font, -1, -1, true, 0, true, true);
+    boardP2->draw(window, font, cursorR, cursorC, false, 0, true, true);
+    drawInfoPanel1v1(T_P1LBL, T_P2LBL, playerBoard.get(), boardP2.get());
+    if (!messages.empty()) {
+        float msgY = 540;
+        for (auto& m : messages) {
+            float alpha = std::min(1.0f, m.timer);
+            sf::Color c = m.color; c.a = (sf::Uint8)(255 * alpha);
+            drawText(m.text, WINDOW_WIDTH / 2, msgY, 20, c, true);
+            msgY -= 26;
+        }
+    }
+}
+
+// ===== 1v1 P2 TURN =====
+
+void Game::renderP2Turn() {
+    drawText(T_P2TURN, WINDOW_WIDTH / 2, 12, 24, sf::Color(255, 120, 100), true);
+    drawText(u8"\u041F\u043E\u043B\u0435 \u0418\u0433\u0440\u043E\u043A\u0430 1", P_BX + BOARD_PIXELS / 2 + 20, 50, 17, sf::Color(100, 255, 150), true);
+    drawText(T_EP, E_BX + BOARD_PIXELS / 2 + 20, 50, 17, sf::Color(255, 120, 100), true);
+    playerBoard->draw(window, font, cursorP2R, cursorP2C, false, 0, true, true);
+    boardP2->draw(window, font, -1, -1, true, 0, true, true);
+    drawInfoPanel1v1(T_P1LBL, T_P2LBL, playerBoard.get(), boardP2.get());
+    if (!messages.empty()) {
+        float msgY = 540;
+        for (auto& m : messages) {
+            float alpha = std::min(1.0f, m.timer);
+            sf::Color c = m.color; c.a = (sf::Uint8)(255 * alpha);
+            drawText(m.text, WINDOW_WIDTH / 2, msgY, 20, c, true);
+            msgY -= 26;
+        }
+    }
+}
+
+// ===== SPLIT-SCREEN BATTLE =====
+
+void Game::renderSplitscreenBattle() {
+    std::string turnText = playerTurnFirst ? T_P1TURN : T_P2TURN;
+    sf::Color turnColor = playerTurnFirst ? sf::Color(100, 255, 150) : sf::Color(255, 120, 100);
+    drawText(turnText, WINDOW_WIDTH / 2, 8, 22, turnColor, true);
+
+    drawSplitscreenDivider();
+
+    drawText(u8"\u0418\u0433\u0440\u043E\u043A 1", P_BX + BOARD_PIXELS / 2, 42, 16, sf::Color(100, 255, 150), true);
+    int p1cR = (playerTurnFirst) ? cursorR : -1;
+    int p1cC = (playerTurnFirst) ? cursorC : -1;
+    playerBoard->draw(window, font, p1cR, p1cC, true, 0, true, true);
+
+    drawText(u8"\u0418\u0433\u0440\u043E\u043A 2", E_BX + BOARD_PIXELS / 2, 42, 16, sf::Color(255, 120, 100), true);
+    int p2cR = (!playerTurnFirst) ? cursorP2R : -1;
+    int p2cC = (!playerTurnFirst) ? cursorP2C : -1;
+    boardP2->draw(window, font, p2cR, p2cC, true, 0, true, true);
+
+    sf::RectangleShape panel(sf::Vector2f(INF_W, 90));
+    panel.setPosition(INF_X, INF_Y + 20);
+    panel.setFillColor(PANEL_BG);
+    panel.setOutlineColor(GRID_LINE);
+    panel.setOutlineThickness(2);
+    window.draw(panel);
+
+    drawText(std::string(T_P1LBL) + std::to_string(playerBoard->getShipsAlive()) + T_KOR,
+             INF_X + 30, INF_Y + 36, 20, sf::Color(100, 255, 150), false);
+    drawText(std::string(T_P2LBL) + std::to_string(boardP2->getShipsAlive()) + T_KOR,
+             INF_X + 30, INF_Y + 66, 20, sf::Color(255, 120, 100), false);
+
+    std::string aim;
+    if (playerTurnFirst) aim = std::string(T_AIM) + char('A' + cursorC) + std::to_string(cursorR + 1) + u8" [\u0418\u0433\u0440\u043E\u043A 2]";
+    else aim = std::string(T_AIM) + char('A' + cursorP2C) + std::to_string(cursorP2R + 1) + u8" [\u0418\u0433\u0440\u043E\u043A 1]";
+    drawText(aim, INF_X + INF_W / 2, INF_Y + 42, 24, TEXT_GOLD, true);
+
+    drawText(T_HINT, INF_X + INF_W / 2, INF_Y + 90, 15, sf::Color(140, 140, 160), true);
+
+    if (!messages.empty()) {
+        float msgY = 520;
+        for (auto& m : messages) {
+            float alpha = std::min(1.0f, m.timer);
+            sf::Color c = m.color; c.a = (sf::Uint8)(255 * alpha);
+            drawText(m.text, WINDOW_WIDTH / 2, msgY, 18, c, true);
+            msgY -= 24;
+        }
+    }
+}
+
+void Game::drawSplitscreenDivider() {
+    sf::RectangleShape line(sf::Vector2f(3, BOARD_PIXELS + 60));
+    line.setPosition(SPLIT_LINE_X, 55);
+    line.setFillColor(sf::Color(200, 180, 100));
+    window.draw(line);
+
+    for (int i = 0; i < 5; i++) {
+        sf::CircleShape diamond(5, 4);
+        diamond.setPosition(SPLIT_LINE_X - 4, 70 + i * (BOARD_PIXELS / 4));
+        diamond.setFillColor(TEXT_GOLD);
+        diamond.setRotation(45);
+        window.draw(diamond);
+    }
+}
+
+// ===== INFO PANELS =====
+
 void Game::drawInfoPanel() {
     sf::RectangleShape panel(sf::Vector2f(INF_W, INF_H));
     panel.setPosition(INF_X, INF_Y);
@@ -588,7 +945,6 @@ void Game::drawInfoPanel() {
     panel.setOutlineColor(GRID_LINE);
     panel.setOutlineThickness(2);
     window.draw(panel);
-
     sf::RectangleShape a1(sf::Vector2f(20, 3)); a1.setPosition(INF_X, INF_Y); a1.setFillColor(TEXT_GOLD); window.draw(a1);
     sf::RectangleShape a2(sf::Vector2f(3, 20)); a2.setPosition(INF_X, INF_Y); a2.setFillColor(TEXT_GOLD); window.draw(a2);
     sf::RectangleShape a3(sf::Vector2f(20, 3)); a3.setPosition(INF_X + INF_W - 20, INF_Y); a3.setFillColor(TEXT_GOLD); window.draw(a3);
@@ -596,28 +952,54 @@ void Game::drawInfoPanel() {
 
     drawText(std::string(T_VY) + std::to_string(playerBoard->getShipsAlive()) + T_KOR, INF_X + 30, INF_Y + 16, 20, sf::Color(100, 255, 150), false);
     drawText(std::string(T_VRAG) + std::to_string(enemyBoard->getShipsAlive()) + T_KOR, INF_X + 30, INF_Y + 48, 20, sf::Color(255, 120, 100), false);
-
     std::string aim = std::string(T_AIM) + char('A' + cursorC) + std::to_string(cursorR + 1);
     drawText(aim, INF_X + INF_W / 2, INF_Y + 22, 26, TEXT_GOLD, true);
-
     int sunkP = 10 - enemyBoard->getShipsAlive();
     int sunkE = 10 - playerBoard->getShipsAlive();
     drawText(std::string(T_SUNK) + std::to_string(sunkP), INF_X + INF_W - 200, INF_Y + 16, 18, sf::Color(255, 180, 50), false);
     drawText(std::string(T_DECK) + std::to_string(sunkP * 2 + sunkE), INF_X + INF_W - 200, INF_Y + 48, 18, sf::Color(200, 160, 80), false);
-
     drawText(T_HINT, INF_X + INF_W / 2, INF_Y + 80, 15, sf::Color(140, 140, 160), true);
     std::string ft = std::string(T_1ST) + (playerTurnFirst ? T_1YOU : T_1BOT);
     drawText(ft, INF_X + 30, INF_Y + 80, 15, sf::Color(100, 200, 255), false);
 }
 
+void Game::drawInfoPanel1v1(const std::string& p1Label, const std::string& p2Label,
+                            Board* b1, Board* b2) {
+    sf::RectangleShape panel(sf::Vector2f(INF_W, INF_H));
+    panel.setPosition(INF_X, INF_Y);
+    panel.setFillColor(PANEL_BG);
+    panel.setOutlineColor(GRID_LINE);
+    panel.setOutlineThickness(2);
+    window.draw(panel);
+    sf::RectangleShape a1(sf::Vector2f(20, 3)); a1.setPosition(INF_X, INF_Y); a1.setFillColor(TEXT_GOLD); window.draw(a1);
+    sf::RectangleShape a2(sf::Vector2f(3, 20)); a2.setPosition(INF_X, INF_Y); a2.setFillColor(TEXT_GOLD); window.draw(a2);
+    sf::RectangleShape a3(sf::Vector2f(20, 3)); a3.setPosition(INF_X + INF_W - 20, INF_Y); a3.setFillColor(TEXT_GOLD); window.draw(a3);
+    sf::RectangleShape a4(sf::Vector2f(3, 20)); a4.setPosition(INF_X + INF_W - 3, INF_Y); a4.setFillColor(TEXT_GOLD); window.draw(a4);
+
+    drawText(p1Label + std::to_string(b1->getShipsAlive()) + T_KOR, INF_X + 30, INF_Y + 16, 20, sf::Color(100, 255, 150), false);
+    drawText(p2Label + std::to_string(b2->getShipsAlive()) + T_KOR, INF_X + 30, INF_Y + 48, 20, sf::Color(255, 120, 100), false);
+
+    std::string aim = std::string(T_AIM) + char('A' + cursorC) + std::to_string(cursorR + 1);
+    drawText(aim, INF_X + INF_W / 2, INF_Y + 22, 26, TEXT_GOLD, true);
+
+    int sunkP = 10 - b2->getShipsAlive();
+    int sunkE = 10 - b1->getShipsAlive();
+    drawText(std::string(T_SUNK) + std::to_string(sunkP), INF_X + INF_W - 200, INF_Y + 16, 18, sf::Color(255, 180, 50), false);
+    drawText(std::string(T_DECK) + std::to_string(sunkP * 2 + sunkE), INF_X + INF_W - 200, INF_Y + 48, 18, sf::Color(200, 160, 80), false);
+
+    drawText(T_HINT, INF_X + INF_W / 2, INF_Y + 80, 15, sf::Color(140, 140, 160), true);
+    std::string ft = std::string(T_1ST) + (playerTurnFirst ? T_1P1 : T_1P2);
+    drawText(ft, INF_X + 30, INF_Y + 80, 15, sf::Color(100, 200, 255), false);
+}
+
+// ===== RESULT SCREENS =====
+
 void Game::renderVictory() {
     sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     overlay.setFillColor(sf::Color(0, 20, 0, 200));
     window.draw(overlay);
-
     drawText(T_WIN, WINDOW_WIDTH / 2, 300, 56, sf::Color(50, 255, 100), true);
     drawText(T_WIN2, WINDOW_WIDTH / 2, 380, 24, TEXT, true);
-
     drawText(T_MNU2, WINDOW_WIDTH / 2, 500, 20, TEXT_GOLD, true);
 }
 
@@ -625,8 +1007,25 @@ void Game::renderDefeat() {
     sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     overlay.setFillColor(sf::Color(20, 0, 0, 200));
     window.draw(overlay);
-
     drawText(T_LOSE, WINDOW_WIDTH / 2, 320, 56, sf::Color(255, 50, 50), true);
     drawText(T_LOSE2, WINDOW_WIDTH / 2, 400, 24, TEXT, true);
     drawText(T_MNU2, WINDOW_WIDTH / 2, 520, 20, TEXT_GOLD, true);
+}
+
+void Game::renderP1Wins() {
+    sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+    overlay.setFillColor(sf::Color(0, 20, 0, 200));
+    window.draw(overlay);
+    drawText(T_P1WIN, WINDOW_WIDTH / 2, 300, 52, sf::Color(50, 255, 100), true);
+    drawText(T_P1WIN2, WINDOW_WIDTH / 2, 380, 24, TEXT, true);
+    drawText(T_MNU2, WINDOW_WIDTH / 2, 500, 20, TEXT_GOLD, true);
+}
+
+void Game::renderP2Wins() {
+    sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+    overlay.setFillColor(sf::Color(20, 0, 0, 200));
+    window.draw(overlay);
+    drawText(T_P2WIN, WINDOW_WIDTH / 2, 300, 52, sf::Color(255, 50, 50), true);
+    drawText(T_P2WIN2, WINDOW_WIDTH / 2, 380, 24, TEXT, true);
+    drawText(T_MNU2, WINDOW_WIDTH / 2, 500, 20, TEXT_GOLD, true);
 }
