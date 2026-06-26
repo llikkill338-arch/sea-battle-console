@@ -1,16 +1,34 @@
-# Исполняемые файлы
-*.exe
-
-# Объектные файлы
-*.o
+# Build directories
 build/
+out/
+cmake-build-*/
+.vs/
 
 # IDE
-.vscode/
 .idea/
+*.user
+*.userosscache
+*.suo
+*.vcxproj*
+.vscode/
 *.swp
 *.swo
 
-# Системные файлы
+# Compiled files
+*.exe
+*.o
+*.dll
+*.lib
+*.pdb
+*.obj
+
+# SFML local copy (don't commit)
+SFML-2.6.1/
+
+# Assets that are too large for git
+assets/sounds/*.wav
+assets/fonts/*.ttf
+
+# System files
 Thumbs.db
 .DS_Store
