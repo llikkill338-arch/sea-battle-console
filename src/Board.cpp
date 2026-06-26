@@ -1,5 +1,5 @@
 // ============================================================================
-// Board.cpp - v7.0 PIRATE - Wooden frame, old map style
+// Board.cpp - v6.0 Simple (works!)
 // ============================================================================
 
 #include "Board.hpp"
@@ -148,8 +148,6 @@ void Board::draw(sf::RenderWindow& window, sf::Font& font,
                 ghost.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
                 ghost.setPosition(x, y);
                 ghost.setFillColor(ghostValid ? GHOST_OK : GHOST_BAD);
-                ghost.setOutlineColor(sf::Color(200, 180, 100));
-                ghost.setOutlineThickness(2);
                 window.draw(ghost);
             }
         }
@@ -161,23 +159,6 @@ void Board::draw(sf::RenderWindow& window, sf::Font& font,
 }
 
 void Board::drawGrid(sf::RenderWindow& window, sf::Font& font) {
-    // Подложка - старая карта
-    sf::RectangleShape bg;
-    bg.setSize(sf::Vector2f(BOARD_PIXELS + 50, BOARD_PIXELS + 50));
-    bg.setPosition(offsetX + 3, offsetY + 3);
-    bg.setFillColor(BG_MAP);
-    window.draw(bg);
-
-    // Деревянная рамка толстая
-    sf::RectangleShape outerFrame;
-    outerFrame.setSize(sf::Vector2f(BOARD_PIXELS + 50, BOARD_PIXELS + 50));
-    outerFrame.setPosition(offsetX + 3, offsetY + 3);
-    outerFrame.setFillColor(sf::Color::Transparent);
-    outerFrame.setOutlineColor(sf::Color(90, 60, 30));
-    outerFrame.setOutlineThickness(5);
-    window.draw(outerFrame);
-
-    // Внутренняя тонкая рамка - бронзовая
     sf::RectangleShape border;
     border.setSize(sf::Vector2f(BOARD_PIXELS + 40, BOARD_PIXELS + 40));
     border.setPosition(offsetX + 8, offsetY + 8);
@@ -186,23 +167,18 @@ void Board::drawGrid(sf::RenderWindow& window, sf::Font& font) {
     border.setOutlineThickness(2);
     window.draw(border);
 
-    // Буквы и цифры - пиратский золотой стиль
     for (int c = 0; c < BOARD_SIZE; c++) {
-        sf::Text text(std::to_string(c + 1), font, 14);
+        sf::Text text(std::to_string(c + 1), font, 13);
         text.setFillColor(TEXT_GOLD);
-        text.setOutlineColor(sf::Color(80, 50, 20));
-        text.setOutlineThickness(1);
-        float x = offsetX + 30 + c * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 6;
+        float x = offsetX + 30 + c * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 5;
         text.setPosition(x, offsetY + 10);
         window.draw(text);
     }
 
     for (int r = 0; r < BOARD_SIZE; r++) {
-        sf::Text text(std::string(1, 'A' + r), font, 14);
+        sf::Text text(std::string(1, 'A' + r), font, 13);
         text.setFillColor(TEXT_GOLD);
-        text.setOutlineColor(sf::Color(80, 50, 20));
-        text.setOutlineThickness(1);
-        text.setPosition(offsetX + 13, offsetY + 35 + r * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 10);
+        text.setPosition(offsetX + 12, offsetY + 35 + r * (CELL_SIZE + CELL_MARGIN) + CELL_SIZE / 2 - 8);
         window.draw(text);
     }
 }

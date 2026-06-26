@@ -1,5 +1,5 @@
 // ============================================================================
-// Game.hpp - v7.0 PIRATE EDITION - Full pirate theme
+// Game.hpp - v6.0 Simplified (works!)
 // ============================================================================
 
 #pragma once
@@ -64,23 +64,14 @@ private:
     sf::String toUtf8(const std::string& text) const;
     void drawText(const std::string& text, float x, float y, int size,
                   sf::Color color, bool center = false);
-    void drawTextShadow(const std::string& text, float x, float y, int size,
-                        sf::Color color, bool center = false);
     void drawButton(const std::string& text, float x, float y, float w, float h,
                     bool hovered, bool selected);
     void applyFullscreen();
     void addMessage(const std::string& text, sf::Color color);
 
-    // Beep sounds
     void playHitSound();
     void playMissSound();
     void playSunkSound();
-
-    // ===== Pirate decorations =====
-    void drawPirateSkull(float x, float y, float scale);
-    void drawPirateAnchor(float x, float y, float scale);
-    void drawCompass(float cx, float cy, float radius);
-    void drawMapBorder();
 
     void renderMenu();
     void renderSettings();
