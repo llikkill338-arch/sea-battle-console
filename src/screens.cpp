@@ -1,212 +1,228 @@
 // ============================================================================
-// screens.cpp — Реализация экранов и игровых режимов
+// screens.cpp - Все экраны и игровые режимы
 // ============================================================================
 
 #include "screens.h"
+#include "bot_ai.h"
 #include <iostream>
 #include <conio.h>
 #include <string>
-#include <vector>
 
-static void printCentered(const std::string& text, int y, Color color) {
-    int x = (SCREEN_WIDTH - (int)text.length()) / 2;
-    if (x < 0) x = 0;
-    setCursor(x, y);
+using namespace std;
+
+// --- Вспомогательные функции ---
+
+static void showMessage(const string& text, Color color, int row) {
+    setCursor(20, row);
     setColor(color, black);
-    std::cout << text;
+    cout << " " << text << " ";
+    setColor(white, black);
 }
 
-static void clearRow(int y) {
-    setCursor(0, y);
-    setColor(black, black);
-    for (int i = 0; i < SCREEN_WIDTH; i++) std::cout << " ";
+static void drawBattleScreen(int myField[R][R], int enemyField[R][R],
+    int curY, int curX, const string& title, bool showMy) {
+
+    system("cls");
+
+    setCursor(28, 0);
+    setColor(yellow, black);
+    cout << "=== " << title << " ===";
+    setColor(white, black);
+    drawLine(0, 1, 80, true, cyan);
+
+    if (showMy) {
+        setCursor(2, 2);
+        setColor(lightgreen, black);
+        cout << "<<< ВАШЕ ПОЛЕ >>>";
+        setColor(white, black);
+        drawBox(0, 3, 38, 14, lightgreen);
+        drawSingleGrid(myField, -1, -1, true, false, 0, true, true, false, 1, 4);
+
+        setCursor(42, 2);
+        setColor(lightred, black);
+        cout << "<<< ПОЛЕ ВРАГА >>>";
+        setColor(white, black);
+        drawBox(42, 3, 38, 14, lightred);
+        drawSingleGrid(enemyField, curY, curX, false, false, 0, true, true, true, 43, 4);
+    } else {
+        setCursor(2, 2);
+        setColor(lightred, black);
+        cout << "<<< ПОЛЕ ПРОТИВНИКА >>>";
+        setColor(white, black);
+        drawBox(0, 3, 38, 14, lightred);
+        drawSingleGrid(enemyField, curY, curX, false, false, 0, true, true, true, 1, 4);
+
+        setCursor(42, 2);
+        setColor(lightgreen, black);
+        cout << "<<< ВАШЕ ПОЛЕ >>>";
+        setColor(white, black);
+        drawBox(42, 3, 38, 14, lightgreen);
+        drawSingleGrid(myField, -1, -1, true, false, 0, true, true, false, 43, 4);
+    }
+
+    setCursor(0, 18);
+    drawLine(0, 18, 80, true, darkgray);
+    setCursor(2, 19);
+    setColor(darkgray, black);
+    cout << "Стрелки - движение | ENTER - выстрел | ESC - меню";
+    setCursor(2, 20);
+    cout << "Попадание = еще ход | Промах = передача";
+    setColor(white, black);
 }
 
-static bool allShipsDestroyed(int field[R][R]) {
-    return !checkAlive(field);
-}
+// --- Заставка ---
 
 void showLogo() {
     system("cls");
+    hideCursor();
 
-    const char* logo[] = {
-        "     __  __  ____  ____  ____  _  _  __   __ _    ____  _  _    ",
-        "    |  \\/  ||  _ \\|  _ \\|  _ \\| || ||  | |  | ||  | |  _ \\| || |   ",
-        "    | |\\/| || |_) | |_) | |_) | || ||  |_|  | ||  | | | | || || |_  ",
-        "    | |  | ||  _ <|  _ <|  _ <| || ||  _   _  | ||  | | |_| ||__   _| ",
-        "    |_|  |_||_| \\ \\|_| \\ \\|_| \\ \\|_||_||_| |_| |_||____/|____/   |_|   "
-    };
-
-    drawBox(8, 2, 52, 7, lightcyan);
-    setColor(lightcyan, black);
-    for (int i = 0; i < 5; i++) {
-        setCursor(10, 4 + i);
-        std::cout << logo[i];
-    }
-
+    setColor(cyan, black);
+    setCursor(15, 3);
+    cout << "     ___  ___  ___   _   _ _____ _____ _____ _____ ";
+    setCursor(15, 4);
+    cout << "    | _ )/ _ \\| _ \\ | | | |_   _|_   _| ____|_   _|";
+    setCursor(15, 5);
+    cout << "    | _ \\ (_) |   / | |_| | | |   | | |  _|   | |  ";
+    setCursor(15, 6);
+    cout << "    |___/\\___/|_|_\\  \\___/  |_|   |_| |_____| |_|  ";
+    setCursor(15, 7);
     setColor(yellow, black);
-    setCursor(20, 10);
-    std::cout << "+=====================================+";
-    setCursor(20, 11);
-    std::cout << "|     K O N S O LxNYJ   B O J       |";
-    setCursor(20, 12);
-    std::cout << "+=====================================+";
+    cout << "              К О Н С О Л Ь Н Ы Й   Б О Й";
+    setColor(white, black);
 
+    drawBox(10, 2, 60, 8, cyan);
+
+    setCursor(25, 12);
     setColor(darkgray, black);
-    setCursor(18, 16);
-    std::cout << "\x87\xA0\xA3\xE0\xE3\xA7\xAA\xA0 \xE1\xA8\xE1\xE2\xA5\xAC\xEB...";
-
-    drawBox(18, 18, 40, 1, green);
-    setColor(lightgreen, black);
-    for (int i = 0; i < 40; i++) {
-        setCursor(19 + i, 19);
-        std::cout << "#";
+    cout << "Загрузка системы...";
+    for (int i = 0; i < 30; i++) {
+        setCursor(25 + i, 13);
+        setColor(lightgreen, black);
+        cout << char(219);
         Sleep(30);
     }
-
-    setColor(lightgreen, black);
-    setCursor(18, 21);
-    std::cout << "+=====================================+";
-    setCursor(18, 22);
-    std::cout << "|       \x91\x88\x91\x92\x85\x8C\x80 \x83\x8E\x92\x8E\x82\x80       |";
-    setCursor(18, 23);
-    std::cout << "+=====================================+";
-
+    setColor(white, black);
     Sleep(500);
 }
 
+// --- Главное меню ---
+
 void showMainMenu(int& selected) {
-    const char* menuItems[] = {
-        "  \x81\xAE\xA9 \xE1 \xA1\xAE\xE2\xAE\xAC                      ",
-        "  \x81\xAE\xA9 1 \xAD\xA0 1 (\xAF\xAE \xAE\xE7\xA5\xE0\xA5\xA4\xA8)          ",
-        "  \x81\xAE\xA9 1 \xAD\xA0 1 (\xE0\xA0\xA7\xA4\xA5\xAB\xF1\xAD\xAD\xEB\xA9 \xED\xAA\xE0\xA0\xAD)   ",
-        "  \x8D\xA0\xE1\xE2\xE0\xAE\xA9\xAA\xA8 \xA7\xA2\xE3\xAA\xA0                  ",
-        "  \x8E\xA1 \xA8\xA3\xE0\xA5                          ",
-        "  \x82\xEB\xE5\xAE\xA4                            "
+    system("cls");
+    hideCursor();
+
+    setColor(cyan, black);
+    setCursor(15, 1);
+    cout << "     ___  ___  ___   _   _ _____ _____ _____ _____ ";
+    setCursor(15, 2);
+    cout << "    | _ )/ _ \\| _ \\ | | | |_   _|_   _| ____|_   _|";
+    setCursor(15, 3);
+    cout << "    | _ \\ (_) |   / | |_| | | |   | | |  _|   | |  ";
+    setCursor(15, 4);
+    cout << "    |___/\\___/|_|_\\  \\___/  |_|   |_| |_____| |_|  ";
+    setCursor(15, 5);
+    setColor(yellow, black);
+    cout << "              К О Н С О Л Ь Н Ы Й   Б О Й";
+    setColor(white, black);
+
+    drawBox(10, 0, 60, 7, cyan);
+
+    string items[] = {
+        "1. Бой с ботом",
+        "2. Бой 1 на 1 (по очереди)",
+        "3. Бой 1 на 1 (разделенный экран)",
+        "4. Правила игры",
+        "5. Выход"
     };
-    const int menuCount = 6;
 
-    while (true) {
-        system("cls");
-
-        setColor(lightcyan, black);
-        setCursor(20, 1);
-        std::cout << "+=====================================+";
-        setCursor(20, 2);
-        std::cout << "|     M O R S K O J   B O J         |";
-        setCursor(20, 3);
-        std::cout << "+=====================================+";
-
-        drawBox(18, 6, 40, menuCount + 2, yellow);
-
-        for (int i = 0; i < menuCount; i++) {
-            setCursor(20, 8 + i);
-            if (i == selected) {
-                setColor(black, yellow);
-                std::cout << "> " << menuItems[i];
-            } else {
-                setColor(white, black);
-                std::cout << "  " << menuItems[i];
-            }
-        }
-
-        setColor(darkgray, black);
-        setCursor(2, 23);
-        std::cout << "\xE1\xE2\xE0\xA5\xAB\xAA\xA8 ^/v - \xA2\xEB\xA1\xAE\xE0 | ENTER - \xAF\xAE\xA4\xE2\xA2\xA5\xE0\xA4\xA8\xE2\xEC | ESC - \xA2\xEB\xE5\xAE\xA4";
-
-        int key = _getch();
-        if (key == 224) {
-            key = _getch();
-            switch (key) {
-                case 72: selected = (selected - 1 + menuCount) % menuCount; break;
-                case 80: selected = (selected + 1) % menuCount; break;
-            }
-        } else if (key == 13) {
-            playSound(800, 80);
-            return;
-        } else if (key == 27) {
-            if (confirmExit()) {
-                selected = 5;
-                return;
-            }
+    for (int i = 0; i < 5; i++) {
+        setCursor(28, 10 + i * 2);
+        if (i == selected) {
+            setColor(black, yellow);
+            cout << "  " << items[i] << "  ";
+        } else {
+            setColor(white, black);
+            cout << "   " << items[i] << "   ";
         }
     }
+    setColor(white, black);
+
+    setCursor(15, 22);
+    setColor(darkgray, black);
+    cout << "Стрелки ВВЕРХ/ВНИЗ - выбор | ENTER - подтвердить | ESC - выход";
+    setColor(white, black);
 }
+
+// --- Правила ---
 
 void showRules() {
     system("cls");
-    drawBox(2, 1, 74, 20, lightcyan);
+    drawBox(5, 1, 70, 20, cyan);
 
+    setCursor(30, 2);
     setColor(yellow, black);
-    setCursor(28, 2);
-    std::cout << "=== O B   I G R E ===";
+    cout << "=== ПРАВИЛА ИГРЫ ===";
 
+    const char* rules[] = {
+        "",
+        "  Цель: потопить весь флот противника.",
+        "",
+        "  Флот: 10 кораблей",
+        "    - 1 четырехпалубный (авианосец)",
+        "    - 2 трехпалубных (крейсера)",
+        "    - 3 двухпалубных (эсминцы)",
+        "    - 4 однопалубных (миноносцы)",
+        "",
+        "  Управление:",
+        "    Стрелки - перемещение",
+        "    ENTER   - выстрел / поставить корабль",
+        "    ПРОБЕЛ  - поворот корабля",
+        "    ESC     - выход",
+        "",
+        "  При попадании - дополнительный ход.",
+        "  Побеждает тот, кто уничтожит флот!"
+    };
+
+    for (int i = 0; i < 18; i++) {
+        setCursor(8, 4 + i);
+        setColor(white, black);
+        cout << rules[i];
+    }
+
+    setCursor(25, 22);
+    setColor(yellow, black);
+    cout << "Нажмите любую клавишу...";
     setColor(white, black);
-    setCursor(6, 4);
-    std::cout << "\x8D\xA0\xA7\xA2\xA0\xAD\xA8\xA5: Morskoj Boj";
-    setCursor(6, 5);
-    std::cout << "\x82\xA5\xE0\xE1\xA8\xEF: 1.0";
-    setCursor(6, 6);
-    std::cout << "\x90\xA0\xA7\xE0\xA0\xA1\xAE\xE2\xA0\xAD\xAE \xAD\xA0: C++ / WinAPI";
-    setCursor(6, 7);
-    std::cout << "\x91\xE2\xA8\xAB\xEC: Retro 80-x";
-
-    setColor(lightcyan, black);
-    setCursor(6, 9);
-    std::cout << "=== UPRAWLENIE ===";
-
-    setColor(white, black);
-    setCursor(6, 10);
-    std::cout << "V MENU: Strelki ^/v - vybor | ENTER - podtverditx | ESC - vyhod";
-    setCursor(6, 11);
-    std::cout << "RASSTANOWKA: Strelki - dvizhenie | PROBEL - povorot | ENTER - ustanovitx";
-    setCursor(6, 12);
-    std::cout << "BOJ: Strelki - dvizhenie price|a | ENTER - vystrel | ESC - vyhod";
-    setCursor(6, 13);
-    std::cout << "PAZDELxNNYJ: P1 - WASD+SHIFT | P2 - Strelki+ENTER | ESC - vyhod";
-
-    setColor(lightcyan, black);
-    setCursor(6, 15);
-    std::cout << "=== PRAWILA ===";
-
-    setColor(white, black);
-    setCursor(6, 16);
-    std::cout << "Celx: potopitx vse korabli protivnika";
-    setCursor(6, 17);
-    std::cout << "Flot: 1x4pal, 2x3pal, 3x2pal, 4x1pal (10 korabl\xA5\xA9)";
-    setCursor(6, 18);
-    std::cout << "Pri popadanii - dopolnitelxnyj hod. Korabli ne dolzhny kasatxsja";
-
-    setColor(darkgray, black);
-    setCursor(6, 22);
-    std::cout << "Nazhmite ljubuju klavishu dlja vozvrata v menju...";
     _getch();
 }
 
-void showSoundSettings() {
-    const char* items[] = { "Gromkostx: ", "Test zvuka  ", "Nazad       " };
-    int sel = 0;
-    bool localSound = soundEnabled;
+// --- Настройки ---
 
+void showSettings(bool& sound) {
+    int sel = 0;
     while (true) {
         system("cls");
         drawBox(20, 6, 36, 7, yellow);
 
         setColor(yellow, black);
         setCursor(26, 7);
-        std::cout << "=== NASTROJKI ZWUKA ===";
+        cout << "=== НАСТРОЙКИ ===";
 
-        for (int i = 0; i < 3; i++) {
-            setCursor(22, 9 + i);
-            if (i == sel) setColor(black, yellow);
-            else setColor(white, black);
-            std::cout << items[i];
-            if (i == 0) std::cout << (localSound ? "[WKL] " : "[WYK\x8B]");
-        }
+        setCursor(22, 9);
+        if (sel == 0) setColor(black, yellow); else setColor(white, black);
+        cout << "Звук: " << (sound ? "[ВКЛ]" : "[ВЫКЛ]");
+
+        setCursor(22, 10);
+        if (sel == 1) setColor(black, yellow); else setColor(white, black);
+        cout << "Тест звука";
+
+        setCursor(22, 11);
+        if (sel == 2) setColor(black, yellow); else setColor(white, black);
+        cout << "Назад";
 
         setColor(darkgray, black);
         setCursor(2, 23);
-        std::cout << "^/v - vybor | </> - izmenenie | ENTER - test/primenitx | ESC - nazad";
+        cout << "^/v - выбор | </> - изменить | ENTER - применить";
 
         int key = _getch();
         if (key == 224) {
@@ -214,302 +230,500 @@ void showSoundSettings() {
             switch (key) {
                 case 72: sel = (sel - 1 + 3) % 3; break;
                 case 80: sel = (sel + 1) % 3; break;
-                case 75: case 77: if (sel == 0) localSound = !localSound; break;
+                case 75: case 77: if (sel == 0) sound = !sound; break;
             }
         } else if (key == 13) {
-            if (sel == 0) { soundEnabled = localSound; playSound(800, 100); }
+            if (sel == 0) { /* переключено выше */ }
             else if (sel == 1) {
-                playSound(1200, 150); playSound(800, 100); Sleep(200);
-                playSound(400, 300); Sleep(200);
-                playSound(523, 200); playSound(659, 200); playSound(784, 200); playSound(1047, 400);
-            } else if (sel == 2) { soundEnabled = localSound; return; }
-        } else if (key == 27) { soundEnabled = localSound; return; }
+                playSound(800, 100); playSound(1200, 150); playSound(400, 200);
+            }
+            else if (sel == 2) return;
+        } else if (key == 27) return;
     }
 }
 
-bool confirmExit() {
+// --- Подтверждение выхода ---
+
+void confirmExit() {
+    setCursor(20, 22);
     setColor(yellow, black);
-    setCursor(2, 24);
-    std::cout << "Wy tochno hotite wyjti? (Y/N): ";
-    while (true) {
-        int key = _getch();
-        if (key == 'Y' || key == 'y') { clearRow(24); return true; }
-        else if (key == 'N' || key == 'n' || key == 27) { clearRow(24); return false; }
-    }
-}
-
-void switchScreenWithTimer(const std::string& nextPlayerName) {
-    system("cls");
-    drawBox(15, 6, 48, 10, yellow);
-
-    setColor(yellow, black);
-    setCursor(24, 8);
-    std::cout << "=== PEREDA^A HODA ===";
-
+    cout << " Вы точно хотите выйти? (Y/N): ";
     setColor(white, black);
-    setCursor(28, 10);
-    std::cout << "Pomenjajtesx mestami!";
+    int key;
+    do {
+        key = _getch();
+        if (key == 'Y' || key == 'y') {
+            system("cls");
+            exit(0);
+        }
+        else if (key == 'N' || key == 'n' || key == 27) {
+            setCursor(20, 22);
+            cout << "                                      ";
+            return;
+        }
+    } while (true);
+}
 
-    setColor(lightcyan, black);
-    setCursor(22, 11);
-    std::cout << ">>> " << nextPlayerName << " <<<";
+// --- Экран передачи хода ---
+
+void switchScreenWithTimer(const string& nextPlayerName) {
+    system("cls");
+    hideCursor();
+
+    drawBox(20, 6, 40, 12, yellow);
+    setCursor(28, 8);
+    setColor(yellow, black);
+    cout << "=== ПЕРЕДАЧА ХОДА ===";
+    setCursor(25, 10);
+    setColor(cyan, black);
+    cout << "Поменяйтесь местами!";
+    setCursor(30, 12);
+    setColor(white, black);
+    cout << "Следующий ход:";
+    setCursor(32, 14);
+    setColor(lightgreen, black);
+    cout << ">>> " << nextPlayerName << " <<<";
+    setColor(white, black);
 
     for (int i = 3; i >= 1; i--) {
-        setColor(lightred, black); setCursor(38, 13); std::cout << i << " "; Sleep(500);
-        setColor(red, black); setCursor(38, 13); std::cout << i << " "; Sleep(500);
+        setCursor(36, 16);
+        setColor(lightred, black);
+        cout << i;
+        setColor(white, black);
+        Sleep(1000);
     }
     system("cls");
 }
 
-void showMessage(const std::string& text, Color color, int row) {
-    clearRow(row);
-    printCentered(text, row, color);
-}
+// --- Бой с ботом ---
 
-void showVictoryScreen(const std::string& winner) {
+void playBotMode(int f1[R][R], int f2[R][R], int level, bool autoPlace) {
+    // Настройки
+    int botLevel = level;
+    int pChoice = autoPlace ? 1 : 0;
+    int sel = 0;
+
+    while (true) {
+        system("cls");
+        drawBox(15, 3, 50, 12, cyan);
+        setCursor(25, 4);
+        setColor(yellow, black);
+        cout << "=== НАСТРОЙКИ ===";
+
+        setCursor(20, 6);
+        if (sel == 0) { setColor(black, yellow); cout << "> "; }
+        else { setColor(white, black); cout << "  "; }
+        cout << "СЛОЖНОСТЬ: " << (botLevel == 0 ? "ЛЕГКИЙ  " : "СЛОЖНЫЙ");
+
+        setCursor(20, 8);
+        if (sel == 1) { setColor(black, yellow); cout << "> "; }
+        else { setColor(white, black); cout << "  "; }
+        cout << "КОРАБЛИ: " << (pChoice == 0 ? "ВРУЧНУЮ  " : "АВТОМАТ");
+
+        setCursor(18, 11);
+        setColor(darkgray, black);
+        cout << "Стрелки - выбор | <-/-> - изменить";
+        setCursor(22, 12);
+        cout << "ENTER - начать | ESC - назад";
+        setColor(white, black);
+
+        int kn = _getch();
+        if (kn == 224) {
+            kn = _getch();
+            if (kn == 72 && sel > 0) sel--;
+            if (kn == 80 && sel < 1) sel++;
+            if (kn == 75 || kn == 77) {
+                if (sel == 0) botLevel = 1 - botLevel;
+                if (sel == 1) pChoice = 1 - pChoice;
+            }
+        } else if (kn == 27) return;
+        else if (kn == 13) break;
+    }
+
+    // Расстановка
+    if (pChoice == 1) autoPlace(f1);
+    else stavlyusam(f1, "ИГРОК");
+    autoPlace(f2);
+
     system("cls");
-    drawBox(15, 6, 48, 7, lightgreen);
-
+    setCursor(20, 10);
     setColor(lightgreen, black);
-    setCursor(24, 9);
-    std::cout << "=== " << winner << " P O B E D I L ! ===";
+    cout << "Корабли расставлены!";
+    setCursor(18, 12);
+    setColor(white, black);
+    cout << "Нажмите ENTER для начала боя...";
+    int start;
+    do { start = _getch(); } while (start != 13);
 
-    playSound(523, 200); playSound(659, 200); playSound(784, 200); playSound(1047, 400);
+    // Бой
+    int curY = 0, curX = 0;
+    resetBot();
 
-    setColor(darkgray, black);
-    setCursor(10, 18);
-    std::cout << "ENTER - igratx snova | ESC - vyhod v menju";
-}
+    while (checkAlive(f1) && checkAlive(f2)) {
+        // Ход игрока
+        int v = 0;
+        while (v == 0) {
+            drawBattleScreen(f1, f2, curY, curX, "БОЙ С БОТОМ", true);
 
-void showDefeatScreen(const std::string& loser) {
+            int kn = _getch();
+            if (kn == 224) {
+                kn = _getch();
+                if (kn == 72 && curY > 0) curY--;
+                if (kn == 80 && curY < R - 1) curY++;
+                if (kn == 75 && curX > 0) curX--;
+                if (kn == 77 && curX < R - 1) curX++;
+            } else if (kn == 27) { confirmExit(); }
+            else if (kn == 13) {
+                if (f2[curY][curX] == CELL_HIT || f2[curY][curX] == CELL_MISS) {
+                    showMessage("Уже стреляли!", yellow, 20);
+                    Sleep(600);
+                } else if (f2[curY][curX] == CELL_SHIP) {
+                    f2[curY][curX] = CELL_HIT;
+                    showMessage("БА-БАХ! ПОПАДАНИЕ!", lightred, 20);
+                    flashHit(curY, curX, 43, 4);
+                    v = 1;
+                } else {
+                    f2[curY][curX] = CELL_MISS;
+                    showMessage("МИМО...", cyan, 20);
+                    flashMiss(curY, curX, 43, 4);
+                    v = 1;
+                }
+            }
+        }
+        if (!checkAlive(f2)) break;
+
+        // Ход бота
+        int by = -1, bx = -1;
+        if (botLevel == 1) botSmartMove(f1, by, bx);
+        else botEasyMove(f1, by, bx);
+
+        if (by >= 0 && bx >= 0) {
+            drawBattleScreen(f1, f2, curY, curX, "БОЙ С БОТОМ", true);
+            if (f1[by][bx] == CELL_HIT) {
+                showMessage("ВАС ПОДБИЛИ!", lightred, 20);
+                flashHit(by, bx, 1, 4);
+            } else {
+                showMessage("Бот промахнулся", cyan, 20);
+                Sleep(500);
+            }
+        }
+    }
+
+    // Результат
     system("cls");
-    drawBox(15, 6, 48, 7, lightred);
+    bool botAlive = checkAlive(f2);
+    drawBox(20, 6, 40, 8, botAlive ? red : green);
+    setCursor(28, 8);
+    if (!botAlive) {
+        setColor(lightgreen, black);
+        cout << "=== ВЫ ПОБЕДИЛИ! ===";
+    } else {
+        setColor(lightred, black);
+        cout << "=== ВЫ ПРОИГРАЛИ ===";
+    }
+    setCursor(24, 11);
+    setColor(white, black);
+    cout << "ENTER - играть снова | ESC - выход";
+    int key;
+    do {
+        key = _getch();
+        if (key == 27) { confirmExit(); break; }
+    } while (key != 13);
+}
 
+// --- 1 на 1 по очереди ---
+
+static bool playPVPRound(int myField[R][R], int enemyField[R][R], const string& name) {
+    int curY = 0, curX = 0;
+    int v = 0;
+
+    while (v == 0) {
+        system("cls");
+        setCursor(0, 0);
+        setColor(yellow, black);
+        cout << "=========== ВАШЕ ПОЛЕ (" << name << ") ===========" << endl;
+        setColor(white, black);
+        drawSingleGrid(myField, -1, -1, true, false, 0, true, true, false, 1, 1);
+        cout << endl;
+        setColor(lightred, black);
+        cout << "=========== ПОЛЕ ПРОТИВНИКА ===========" << endl;
+        setColor(white, black);
+        drawSingleGrid(enemyField, curY, curX, false, false, 0, true, true, true, 1, 13);
+
+        setCursor(0, R * 2 + 5);
+        cout << name << ": Стрелки | ENTER | ESC";
+
+        int kn = _getch();
+        if (kn == 224) {
+            kn = _getch();
+            if (kn == 72 && curY > 0) curY--;
+            if (kn == 80 && curY < R - 1) curY++;
+            if (kn == 75 && curX > 0) curX--;
+            if (kn == 77 && curX < R - 1) curX++;
+        } else if (kn == 27) { confirmExit(); }
+        else if (kn == 13) {
+            if (enemyField[curY][curX] == CELL_SHIP) {
+                enemyField[curY][curX] = CELL_HIT;
+                showMessage("БА-БАХ! ПОПАДАНИЕ!", lightred, R + 2);
+                flashHit(curY, curX, 1, 13);
+                v = 1;
+            } else if (enemyField[curY][curX] == CELL_WATER) {
+                enemyField[curY][curX] = CELL_MISS;
+                showMessage("МИМО...", cyan, R + 2);
+                Sleep(500);
+                v = 1;
+            } else {
+                setColor(red, black);
+                setCursor(0, R * 2 + 6);
+                cout << "Уже стреляли! Выберите другую.";
+                Sleep(600);
+            }
+        }
+    }
+    return checkAlive(enemyField);
+}
+
+void playPVPTurn(int f1[R][R], int f2[R][R]) {
+    stavlyusam(f1, "ИГРОК 1");
+    switchScreenWithTimer("ИГРОК 2");
+    stavlyusam(f2, "ИГРОК 2");
+    system("cls");
+
+    setCursor(20, 10);
+    setColor(lightgreen, black);
+    cout << "Корабли расставлены!";
+    setCursor(18, 12);
+    setColor(white, black);
+    cout << "Нажмите ENTER для начала боя...";
+    int start;
+    do { start = _getch(); } while (start != 13);
+
+    bool p1Alive = true, p2Alive = true;
+    bool turnP1 = true;
+
+    while (p1Alive && p2Alive) {
+        if (turnP1) {
+            p2Alive = playPVPRound(f1, f2, "ИГРОК 1");
+            if (!p2Alive) break;
+            switchScreenWithTimer("ИГРОК 2");
+            turnP1 = false;
+        } else {
+            p1Alive = playPVPRound(f2, f1, "ИГРОК 2");
+            if (!p1Alive) break;
+            switchScreenWithTimer("ИГРОК 1");
+            turnP1 = true;
+        }
+    }
+
+    system("cls");
+    drawBox(20, 6, 40, 8, p1Alive ? green : red);
+    setCursor(26, 8);
+    if (p1Alive) {
+        setColor(lightgreen, black);
+        cout << "=== ПОБЕДИЛ ИГРОК 1 ===";
+    } else {
+        setColor(lightred, black);
+        cout << "=== ПОБЕДИЛ ИГРОК 2 ===";
+    }
+    setCursor(24, 11);
+    setColor(white, black);
+    cout << "ENTER - играть снова | ESC - выход";
+    int key;
+    do {
+        key = _getch();
+        if (key == 27) { confirmExit(); break; }
+    } while (key != 13);
+}
+
+// --- Разделенный экран ---
+
+static void drawSplitScreen(int p1Field[R][R], int p2Field[R][R], bool p1Turn) {
+    system("cls");
+
+    setCursor(28, 0);
+    setColor(yellow, black);
+    cout << "=== М О Р С К О Й   Б О Й ===";
+    setColor(white, black);
+    drawLine(0, 1, 80, true, cyan);
+
+    setCursor(8, 2);
+    setColor(lightgreen, black);
+    if (p1Turn) cout << ">>> ИГРОК 1 (ВАШ ХОД) <<<";
+    else        cout << "    ИГРОК 1 (ОЖИДАЕТ)    ";
+    setColor(white, black);
+    drawBox(0, 3, 38, 14, lightgreen);
+    drawSingleGrid(p1Field, -1, -1, true, false, 0, true, true, false, 1, 4);
+
+    setCursor(48, 2);
     setColor(lightred, black);
-    setCursor(26, 9);
-    std::cout << "=== " << loser << " P R O I G R A L ===";
+    if (!p1Turn) cout << ">>> ИГРОК 2 (ВАШ ХОД) <<<";
+    else         cout << "    ИГРОК 2 (ОЖИДАЕТ)    ";
+    setColor(white, black);
+    drawBox(42, 3, 38, 14, lightred);
+    drawSingleGrid(p2Field, -1, -1, true, false, 0, true, true, false, 43, 4);
 
-    playSound(400, 300); playSound(300, 300); playSound(200, 500);
+    drawDivider();
 
+    setCursor(0, 18);
+    drawLine(0, 18, 80, true, darkgray);
+    setCursor(2, 19);
     setColor(darkgray, black);
-    setCursor(10, 18);
-    std::cout << "ENTER - igratx snova | ESC - vyhod v menju";
+    cout << "Стрелки - движение | ENTER - выстрел | ESC - меню";
+    setCursor(2, 20);
+    cout << "Попадание = еще ход | Промах = передача";
+    setColor(white, black);
 }
 
-bool playBotMode(int field1[R][R], int field2[R][R], int botLevel, bool autoPlaceP1) {
-    if (autoPlaceP1) {
-        autoPlace(field1);
-        setColor(white, black); setCursor(2, 23);
-        std::cout << "\x82\xA0\xE8\xA8 \xAA\xAE\xE0\xA0\xA1\xAB\xA8 \xE0\xA0\xE1\xE1\xE2\xA0\xA2\xAB\xA5\xAD\xEB \xA0\xA2\xE2\xAE\xAC\xA0\xE2\xA8\xE7\xA5\xE1\xAA\xA8..."; Sleep(1000);
-    } else { stavlyusam(field1, "IGROK 1"); }
-    autoPlace(field2);
+static bool playSplitRound(int p1Field[R][R], int p2Field[R][R],
+    int p1Fog[R][R], int p2Fog[R][R], bool& p1Turn) {
 
-    int cursorY = 0, cursorX = 0;
-    bool playerTurn = true;
+    int curY = 0, curX = 0;
+    int v = 0;
+    string name = p1Turn ? "ИГРОК 1" : "ИГРОК 2";
+    int offsetX = p1Turn ? 43 : 1;
 
-    while (true) {
-        system("cls");
+    while (v == 0) {
+        drawSplitScreen(p1Field, p2Field, p1Turn);
 
-        setColor(lightcyan, black); setCursor(2, 0);
-        std::cout << "=== BOJ S BOTOM ===  ";
-        std::cout << (botLevel == 0 ? "[LxGKIJ]" : "[SLOZhNYJ]");
+        // Прицел
+        setCursor(offsetX + curX * 3 + 3, 5 + curY);
+        setColor(yellow, black);
+        cout << "[";
+        setColor(red, black);
+        cout << "+";
+        setColor(yellow, black);
+        cout << "]";
+        setColor(white, black);
 
-        setColor(lightred, black); setCursor(2, 1);
-        std::cout << "--- POLE PROTIBNIKA ---";
-        drawSingleGrid(field2, cursorY, cursorX, false, false, 0, true, true, playerTurn, 2, 2);
+        setCursor(25, 22);
+        setColor(lightcyan, black);
+        cout << name << ", выберите цель и нажмите ENTER";
+        setColor(white, black);
 
-        setColor(lightgreen, black); setCursor(2, 15);
-        std::cout << "------ WASxE POLE ------";
-        drawSingleGrid(field1, -1, -1, true, false, 0, true, true, false, 2, 16);
-
-        setColor(darkgray, black); setCursor(2, 23);
-        std::cout << "Strelki - price| | ENTER - vystrel | ESC - vyhod             ";
-
-        if (!playerTurn) {
-            setColor(yellow, black); setCursor(45, 9); std::cout << "Bot dumaet..."; Sleep(800);
-
-            int by, bx;
-            if (botLevel == 0) botEasyMove(field1, by, bx); else botSmartMove(field1, by, bx);
-            if (by < 0 || bx < 0) break;
-            clearRow(9);
-
-            if (field1[by][bx] == CELL_SHIP) {
-                field1[by][bx] = CELL_HIT; flashHit(by, bx, 2, 16);
-                setColor(lightred, black); setCursor(45, 9);
-                std::cout << "WAS PODBILI! (" << (char)('A'+bx) << by << ")";
-                playSound(1200, 150); Sleep(500);
-                if (allShipsDestroyed(field1)) { showDefeatScreen("IGROK 1"); _getch(); return false; }
-                continue;
-            } else {
-                field1[by][bx] = CELL_MISS; flashMiss(by, bx, 2, 16);
-                setColor(white, black); setCursor(45, 9);
-                std::cout << "Bot promahnulsja (" << (char)('A'+bx) << by << ")";
-                playSound(400, 300); Sleep(500); playerTurn = true;
-            }
-        } else {
-            int key = _getch();
-            if (key == 224) {
-                key = _getch();
-                switch (key) {
-                    case 72: if (cursorY > 0) cursorY--; break; case 80: if (cursorY < R - 1) cursorY++; break;
-                    case 75: if (cursorX > 0) cursorX--; break; case 77: if (cursorX < R - 1) cursorX++; break;
-                }
-            } else if (key == 13) {
-                if (field2[cursorY][cursorX] == CELL_HIT || field2[cursorY][cursorX] == CELL_MISS) {
-                    showMessage("Sjuda uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
-                } else if (field2[cursorY][cursorX] == CELL_SHIP) {
-                    field2[cursorY][cursorX] = CELL_HIT; flashHit(cursorY, cursorX, 2, 2);
-                    showMessage(">>> POPADANIE! <<<", lightred, 22);
-                    playSound(1200, 150); playSound(800, 100); Sleep(500); clearRow(22);
-                    if (allShipsDestroyed(field2)) { showVictoryScreen("IGROK 1"); _getch(); return true; }
+        int kn = _getch();
+        if (kn == 224) {
+            kn = _getch();
+            if (kn == 72 && curY > 0) curY--;
+            if (kn == 80 && curY < R - 1) curY++;
+            if (kn == 75 && curX > 0) curX--;
+            if (kn == 77 && curX < R - 1) curX++;
+        } else if (kn == 27) { confirmExit(); }
+        else if (kn == 13) {
+            if (p1Turn) {
+                if (p2Fog[curY][curX] != 0) {
+                    showMessage("Уже стреляли!", yellow, 22);
+                    Sleep(800);
+                } else if (p2Field[curY][curX] == CELL_SHIP) {
+                    p2Field[curY][curX] = CELL_HIT;
+                    p2Fog[curY][curX] = CELL_HIT;
+                    flashHit(curY, curX, 43, 4);
+                    showMessage("БА-БАХ! ПОПАДАНИЕ!", lightred, 22);
+                    playSound(1200, 200);
+                    Sleep(500);
+                    v = 1;
                 } else {
-                    field2[cursorY][cursorX] = CELL_MISS; flashMiss(cursorY, cursorX, 2, 2);
-                    showMessage(">>> MIMO... <<<", cyan, 22);
-                    playSound(400, 300); Sleep(500); clearRow(22); playerTurn = false;
-                }
-            } else if (key == 27) { if (confirmExit()) return false; }
-        }
-    }
-    return false;
-}
-
-bool playPVP_TurnMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], int p2Fog[R][R]) {
-    stavlyusam(p1Field, "IGROK 1");
-    switchScreenWithTimer("IGROK 2");
-    stavlyusam(p2Field, "IGROK 2");
-    switchScreenWithTimer("IGROK 1");
-
-    int cursorY = 0, cursorX = 0;
-    int currentPlayer = 1;
-
-    while (true) {
-        system("cls");
-
-        int (*myField)[R] = (currentPlayer == 1) ? p1Field : p2Field;
-        int (*enemyField)[R] = (currentPlayer == 1) ? p2Field : p1Field;
-        int (*enemyFog)[R] = (currentPlayer == 1) ? p2Fog : p1Fog;
-
-        setColor(lightcyan, black); setCursor(2, 0);
-        std::cout << "=== HOD IGROKA " << currentPlayer << " ===";
-
-        setColor(lightred, black); setCursor(2, 1);
-        std::cout << "--- POLE PROTIBNIKA ---";
-        drawSingleGrid(enemyField, cursorY, cursorX, false, false, 0, true, true, true, 2, 2);
-
-        setColor(lightgreen, black); setCursor(2, 15);
-        std::cout << "------ WASxE POLE ------";
-        drawSingleGrid(myField, -1, -1, true, false, 0, true, true, false, 2, 16);
-
-        setColor(darkgray, black); setCursor(2, 23);
-        std::cout << "Strelki - price| | ENTER - vystrel | ESC - vyhod";
-
-        int key = _getch();
-        if (key == 224) {
-            key = _getch();
-            switch (key) {
-                case 72: if (cursorY > 0) cursorY--; break; case 80: if (cursorY < R - 1) cursorY++; break;
-                case 75: if (cursorX > 0) cursorX--; break; case 77: if (cursorX < R - 1) cursorX++; break;
-            }
-        } else if (key == 13) {
-            if (enemyFog[cursorY][cursorX] == CELL_HIT || enemyFog[cursorY][cursorX] == CELL_MISS) {
-                showMessage("Sjuda uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
-            } else if (enemyField[cursorY][cursorX] == CELL_SHIP) {
-                enemyField[cursorY][cursorX] = CELL_HIT; enemyFog[cursorY][cursorX] = CELL_HIT;
-                flashHit(cursorY, cursorX, 2, 2);
-                showMessage(">>> POPADANIE! <<<", lightred, 22);
-                playSound(1200, 150); playSound(800, 100); Sleep(500); clearRow(22);
-                if (allShipsDestroyed(enemyField)) {
-                    std::string winner = (currentPlayer == 1) ? "IGROK 1" : "IGROK 2";
-                    showVictoryScreen(winner); _getch(); return (currentPlayer == 1);
+                    p2Field[curY][curX] = CELL_MISS;
+                    p2Fog[curY][curX] = CELL_MISS;
+                    showMessage("МИМО...", cyan, 22);
+                    Sleep(600);
+                    v = 1; p1Turn = !p1Turn;
                 }
             } else {
-                enemyField[cursorY][cursorX] = CELL_MISS; enemyFog[cursorY][cursorX] = CELL_MISS;
-                flashMiss(cursorY, cursorX, 2, 2);
-                showMessage(">>> MIMO... <<<", cyan, 22);
-                playSound(400, 300); Sleep(500); clearRow(22);
-                std::string nextPlayer = (currentPlayer == 1) ? "IGROK 2" : "IGROK 1";
-                switchScreenWithTimer(nextPlayer);
-                currentPlayer = (currentPlayer == 1) ? 2 : 1; cursorY = 0; cursorX = 0;
-            }
-        } else if (key == 27) { if (confirmExit()) return false; }
-    }
-}
-
-bool playPVP_SplitMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], int p2Fog[R][R]) {
-    stavlyusam(p1Field, "IGROK 1");
-    system("cls"); setColor(white, black); setCursor(15, 12);
-    std::cout << "Nazhmite ljubuju klavishu, kogda budete gotowy (Igrok 2)..."; _getch();
-    stavlyusam(p2Field, "IGROK 2");
-
-    int p1CursorY = 0, p1CursorX = 0;
-    int p2CursorY = 0, p2CursorX = 0;
-    int currentPlayer = 1;
-
-    while (true) {
-        system("cls");
-
-        setColor(currentPlayer == 1 ? lightgreen : darkgray, black); setCursor(2, 0);
-        std::cout << (currentPlayer == 1 ? ">>> IGROK 1 (WASx HOD) <<<" : "    IGROK 1 (OZhIDAET)    ");
-        drawSingleGrid(p1Field, p1CursorY, p1CursorX, true, false, 0, true, true, currentPlayer == 1, 0, 1);
-
-        drawDivider();
-
-        setColor(currentPlayer == 2 ? lightred : darkgray, black); setCursor(42, 0);
-        std::cout << (currentPlayer == 2 ? ">>> IGROK 2 (WASx HOD) <<<" : "    IGROK 2 (OZhIDAET)    ");
-        drawSingleGrid(p2Field, p2CursorY, p2CursorX, true, false, 0, true, true, currentPlayer == 2, 41, 1);
-
-        setColor(darkgray, black); setCursor(2, 23);
-        std::cout << "P1: WASD+SHIFT | P2: Strelki+ENTER | ESC - vyhod";
-
-        int key = _getch();
-
-        if (key == 27) { if (confirmExit()) return false; }
-        else if (currentPlayer == 1) {
-            bool shoot = false;
-            switch (key) {
-                case 'w': case 'W': if (p1CursorY > 0) p1CursorY--; break;
-                case 's': case 'S': if (p1CursorY < R - 1) p1CursorY++; break;
-                case 'a': case 'A': if (p1CursorX > 0) p1CursorX--; break;
-                case 'd': case 'D': if (p1CursorX < R - 1) p1CursorX++; break;
-                case 0: key = _getch(); if (key == 42 || key == 54) shoot = true; break;
-            }
-            if (shoot) {
-                int ey = p1CursorY, ex = p1CursorX;
-                if (p2Field[ey][ex] == CELL_HIT || p2Field[ey][ex] == CELL_MISS) {
-                    showMessage("Uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
-                } else if (p2Field[ey][ex] == CELL_SHIP) {
-                    p2Field[ey][ex] = CELL_HIT; flashHit(ey, ex, 41, 1);
-                    showMessage("IGROK 1 - POPADANIE!", lightgreen, 22);
-                    playSound(1200, 150); Sleep(500); clearRow(22);
-                    if (allShipsDestroyed(p2Field)) { showVictoryScreen("IGROK 1"); _getch(); return true; }
+                if (p1Fog[curY][curX] != 0) {
+                    showMessage("Уже стреляли!", yellow, 22);
+                    Sleep(800);
+                } else if (p1Field[curY][curX] == CELL_SHIP) {
+                    p1Field[curY][curX] = CELL_HIT;
+                    p1Fog[curY][curX] = CELL_HIT;
+                    flashHit(curY, curX, 1, 4);
+                    showMessage("БА-БАХ! ПОПАДАНИЕ!", lightred, 22);
+                    playSound(1200, 200);
+                    Sleep(500);
+                    v = 1;
                 } else {
-                    p2Field[ey][ex] = CELL_MISS; flashMiss(ey, ex, 41, 1);
-                    showMessage("IGROK 1 - MIMO...", cyan, 22);
-                    playSound(400, 300); Sleep(500); clearRow(22); currentPlayer = 2;
-                }
-            }
-        } else {
-            if (key == 224) {
-                key = _getch();
-                switch (key) {
-                    case 72: if (p2CursorY > 0) p2CursorY--; break; case 80: if (p2CursorY < R - 1) p2CursorY++; break;
-                    case 75: if (p2CursorX > 0) p2CursorX--; break; case 77: if (p2CursorX < R - 1) p2CursorX++; break;
-                }
-            } else if (key == 13) {
-                int ey = p2CursorY, ex = p2CursorX;
-                if (p1Field[ey][ex] == CELL_HIT || p1Field[ey][ex] == CELL_MISS) {
-                    showMessage("Uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
-                } else if (p1Field[ey][ex] == CELL_SHIP) {
-                    p1Field[ey][ex] = CELL_HIT; flashHit(ey, ex, 0, 1);
-                    showMessage("IGROK 2 - POPADANIE!", lightred, 22);
-                    playSound(1200, 150); Sleep(500); clearRow(22);
-                    if (allShipsDestroyed(p1Field)) { showVictoryScreen("IGROK 2"); _getch(); return false; }
-                } else {
-                    p1Field[ey][ex] = CELL_MISS; flashMiss(ey, ex, 0, 1);
-                    showMessage("IGROK 2 - MIMO...", cyan, 22);
-                    playSound(400, 300); Sleep(500); clearRow(22); currentPlayer = 1;
+                    p1Field[curY][curX] = CELL_MISS;
+                    p1Fog[curY][curX] = CELL_MISS;
+                    showMessage("МИМО...", cyan, 22);
+                    Sleep(600);
+                    v = 1; p1Turn = !p1Turn;
                 }
             }
         }
     }
+    return p1Turn ? checkAlive(p2Field) : checkAlive(p1Field);
+}
+
+void playPVPSplit(int f1[R][R], int f2[R][R]) {
+    // Инструкция
+    system("cls");
+    drawBox(10, 5, 60, 10, yellow);
+    setCursor(20, 7);
+    setColor(yellow, black);
+    cout << "=== РЕЖИМ: РАЗДЕЛЕННЫЙ ЭКРАН ===";
+    setCursor(15, 9);
+    setColor(white, black);
+    cout << "ИГРОК 1 (слева) vs ИГРОК 2 (справа)";
+    setCursor(12, 11);
+    setColor(cyan, black);
+    cout << "Поставьте книгу по центру экрана!";
+    setCursor(15, 13);
+    setColor(darkgray, black);
+    cout << "Нажмите ENTER для продолжения...";
+    int start;
+    do { start = _getch(); } while (start != 13);
+
+    // Расстановка
+    system("cls");
+    setCursor(5, 10);
+    setColor(lightgreen, black);
+    cout << "ИГРОК 1: Расставьте корабли";
+    Sleep(1000);
+    stavlyusam(f1, "ИГРОК 1");
+
+    system("cls");
+    setCursor(5, 10);
+    setColor(lightred, black);
+    cout << "ИГРОК 2: Расставьте корабли";
+    Sleep(1000);
+    stavlyusam(f2, "ИГРОК 2");
+
+    system("cls");
+    drawBox(10, 8, 60, 6, green);
+    setCursor(22, 10);
+    setColor(lightgreen, black);
+    cout << "К О Р А Б Л И   Р А С С Т А В Л Е Н Ы !";
+    setCursor(18, 12);
+    setColor(white, black);
+    cout << "Нажмите ENTER для начала боя...";
+    do { start = _getch(); } while (start != 13);
+
+    // Бой
+    bool p1Alive = true, p2Alive = true;
+    bool p1Turn = true;
+    int fog1[R][R] = {}, fog2[R][R] = {};
+
+    while (p1Alive && p2Alive) {
+        bool enemyAlive = playSplitRound(f1, f2, fog1, fog2, p1Turn);
+        if (p1Turn) p2Alive = enemyAlive;
+        else p1Alive = enemyAlive;
+    }
+
+    system("cls");
+    drawBox(20, 6, 40, 8, p1Alive ? green : red);
+    setCursor(26, 8);
+    if (p1Alive) {
+        setColor(lightgreen, black);
+        cout << "=== ПОБЕДИЛ ИГРОК 1 ===";
+    } else {
+        setColor(lightred, black);
+        cout << "=== ПОБЕДИЛ ИГРОК 2 ===";
+    }
+    setCursor(24, 11);
+    setColor(white, black);
+    cout << "ENTER - играть снова | ESC - выход";
+    int key;
+    do {
+        key = _getch();
+        if (key == 27) { confirmExit(); break; }
+    } while (key != 13);
 }
