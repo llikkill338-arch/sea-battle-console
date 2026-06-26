@@ -8,9 +8,6 @@
 #include <string>
 #include <vector>
 
-// --- Вспомогательные функции ---
-
-/** Центрированный вывод текста */
 static void printCentered(const std::string& text, int y, Color color) {
     int x = (SCREEN_WIDTH - (int)text.length()) / 2;
     if (x < 0) x = 0;
@@ -19,37 +16,15 @@ static void printCentered(const std::string& text, int y, Color color) {
     std::cout << text;
 }
 
-/** Стирает строку пробелами */
 static void clearRow(int y) {
     setCursor(0, y);
     setColor(black, black);
     for (int i = 0; i < SCREEN_WIDTH; i++) std::cout << " ";
 }
 
-/** Проверка, все ли корабли уничтожены (нет CELL_SHIP) */
 static bool allShipsDestroyed(int field[R][R]) {
     return !checkAlive(field);
 }
-
-/** Отрисовка поля боя (туман войны) */
-static void drawBattleField(int field[R][R], int fog[R][R], int cursorY, int cursorX,
-    bool showShips, bool showCrosshair, int offsetX, int offsetY) {
-    int display[R][R];
-    for (int y = 0; y < R; y++) {
-        for (int x = 0; x < R; x++) {
-            if (fog[y][x] == CELL_MISS || fog[y][x] == CELL_HIT) {
-                display[y][x] = fog[y][x];
-            } else if (showShips && field[y][x] == CELL_SHIP) {
-                display[y][x] = CELL_SHIP;
-            } else {
-                display[y][x] = CELL_WATER;
-            }
-        }
-    }
-    drawSingleGrid(display, cursorY, cursorX, true, false, 0, true, true, showCrosshair, offsetX, offsetY);
-}
-
-// --- Заставка ---
 
 void showLogo() {
     system("cls");
@@ -71,45 +46,43 @@ void showLogo() {
 
     setColor(yellow, black);
     setCursor(20, 10);
-    std::cout << "\xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB";
+    std::cout << "+=====================================+";
     setCursor(20, 11);
-    std::cout << "\xBA     \xCA \xCF \xCE \xD3 \xCF \xCB \xDC \xCA   \xC1 \xCF \xCA       \xBA";
+    std::cout << "|     K O N S O LxNYJ   B O J       |";
     setCursor(20, 12);
-    std::cout << "\xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC";
+    std::cout << "+=====================================+";
 
     setColor(darkgray, black);
     setCursor(18, 16);
-    std::cout << "\xC7\xE0\xE3\xF0\xE7\xEA\xE0 \xF1\xE8\xF1\xF2\xE5\xEC\xFB...";
+    std::cout << "\x87\xA0\xA3\xE0\xE3\xA7\xAA\xA0 \xE1\xA8\xE1\xE2\xA5\xAC\xEB...";
 
     drawBox(18, 18, 40, 1, green);
     setColor(lightgreen, black);
     for (int i = 0; i < 40; i++) {
         setCursor(19 + i, 19);
-        std::cout << "\xDB";
+        std::cout << "#";
         Sleep(30);
     }
 
     setColor(lightgreen, black);
     setCursor(18, 21);
-    std::cout << "\xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB";
+    std::cout << "+=====================================+";
     setCursor(18, 22);
-    std::cout << "\xBA       \xD1\xC8\xD3\xD2\xC5\xCC\xC0 \xC3\xCF\xD4\xCF\xD7\xC0       \xBA";
+    std::cout << "|       \x91\x88\x91\x92\x85\x8C\x80 \x83\x8E\x92\x8E\x82\x80       |";
     setCursor(18, 23);
-    std::cout << "\xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC";
+    std::cout << "+=====================================+";
 
     Sleep(500);
 }
 
-// --- Главное меню ---
-
 void showMainMenu(int& selected) {
     const char* menuItems[] = {
-        "  \xC1\xEE\xE9 \xF1 \xE1\xEE\xF2\xEE\xEC                      ",
-        "  \xC1\xEE\xE9 1 \xED\xE0 1 (\xEF\xEE \xEE\xF7\xE5\xF0\xE5\xE4\xE8)          ",
-        "  \xC1\xEE\xE9 1 \xED\xE0 1 (\xF0\xE0\xE7\xE4\xE5\xEB\xB8\xED\xED\xFB\xE9 \xFD\xEA\xF0\xE0\xED)   ",
-        "  \xCD\xE0\xF1\xF2\xF0\xEE\xE9\xEA\xE8 \xE7\xE2\xF3\xEA\xE0                  ",
-        "  \xCE\xE1 \xE8\xE3\xF0\xE5                          ",
-        "  \xC2\xFB\xF5\xEE\xE4                            "
+        "  \x81\xAE\xA9 \xE1 \xA1\xAE\xE2\xAE\xAC                      ",
+        "  \x81\xAE\xA9 1 \xAD\xA0 1 (\xAF\xAE \xAE\xE7\xA5\xE0\xA5\xA4\xA8)          ",
+        "  \x81\xAE\xA9 1 \xAD\xA0 1 (\xE0\xA0\xA7\xA4\xA5\xAB\xF1\xAD\xAD\xEB\xA9 \xED\xAA\xE0\xA0\xAD)   ",
+        "  \x8D\xA0\xE1\xE2\xE0\xAE\xA9\xAA\xA8 \xA7\xA2\xE3\xAA\xA0                  ",
+        "  \x8E\xA1 \xA8\xA3\xE0\xA5                          ",
+        "  \x82\xEB\xE5\xAE\xA4                            "
     };
     const int menuCount = 6;
 
@@ -118,11 +91,11 @@ void showMainMenu(int& selected) {
 
         setColor(lightcyan, black);
         setCursor(20, 1);
-        std::cout << "\xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB";
+        std::cout << "+=====================================+";
         setCursor(20, 2);
-        std::cout << "\xBA     \xCC \xCF \xD0 \xD1 \xCA \xCF \xCA   \xC1 \xCF \xCA       \xBA";
+        std::cout << "|     M O R S K O J   B O J         |";
         setCursor(20, 3);
-        std::cout << "\xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC";
+        std::cout << "+=====================================+";
 
         drawBox(18, 6, 40, menuCount + 2, yellow);
 
@@ -139,7 +112,7 @@ void showMainMenu(int& selected) {
 
         setColor(darkgray, black);
         setCursor(2, 23);
-        std::cout << "\xD1\xF2\xF0\xE5\xEB\xEA\xE8 \xC2\xC2\xC5\xD0\xD5/\xC2\xCD\xC8\xC7 - \xE2\xFB\xE1\xEE\xF0 | ENTER - \xEF\xEE\xE4\xF2\xE2\xE5\xF0\xE4\xE8\xF2\xFC | ESC - \xE2\xFB\xF5\xEE\xE4";
+        std::cout << "\xE1\xE2\xE0\xA5\xAB\xAA\xA8 ^/v - \xA2\xEB\xA1\xAE\xE0 | ENTER - \xAF\xAE\xA4\xE2\xA2\xA5\xE0\xA4\xA8\xE2\xEC | ESC - \xA2\xEB\xE5\xAE\xA4";
 
         int key = _getch();
         if (key == 224) {
@@ -160,60 +133,58 @@ void showMainMenu(int& selected) {
     }
 }
 
-// --- Другие экраны ---
-
 void showRules() {
     system("cls");
     drawBox(2, 1, 74, 20, lightcyan);
 
     setColor(yellow, black);
     setCursor(28, 2);
-    std::cout << "=== \xCE \xC1   \xC8 \xC3 \xD0 \xC5 ===";
+    std::cout << "=== O B   I G R E ===";
 
     setColor(white, black);
     setCursor(6, 4);
-    std::cout << "\xCD\xE0\xE7\xE2\xE0\xED\xE8\xE5: \xCC\xEE\xF0\xF1\xEA\xEE\xE9 \xE1\xEE\xE9 \xE8 \xCA\xEE\xED\xF1\xEE\xEB\xFC\xED\xFB\xE9 \xC1\xEE\xE9";
+    std::cout << "\x8D\xA0\xA7\xA2\xA0\xAD\xA8\xA5: Morskoj Boj";
     setCursor(6, 5);
-    std::cout << "\xC2\xE5\xF0\xF1\xE8\xFF: 1.0";
+    std::cout << "\x82\xA5\xE0\xE1\xA8\xEF: 1.0";
     setCursor(6, 6);
-    std::cout << "\xD0\xE0\xE7\xF0\xE0\xE1\xEE\xF2\xE0\xED\xEE \xED\xE0: C++ / WinAPI";
+    std::cout << "\x90\xA0\xA7\xE0\xA0\xA1\xAE\xE2\xA0\xAD\xAE \xAD\xA0: C++ / WinAPI";
     setCursor(6, 7);
-    std::cout << "\xD1\xF2\xE8\xEB\xFC: \xD0\xE5\xF2\xF0\xEE 80-\xE5, \xEF\xE8\xEA\xF1\xE5\xEB\xFC-\xE0\xF0\xF2";
+    std::cout << "\x91\xE2\xA8\xAB\xEC: Retro 80-x";
 
     setColor(lightcyan, black);
     setCursor(6, 9);
-    std::cout << "=== \xD3\xCF\xD0\xC0\xC2\xCB\xC5\xCD\xC8\xC5 ===";
+    std::cout << "=== UPRAWLENIE ===";
 
     setColor(white, black);
     setCursor(6, 10);
-    std::cout << "\xC2 \xCC\xC5\xCD\xDE: \xD1\xF2\xF0\xE5\xEB\xEA\xE8 \x18\x19 - \xE2\xFB\xE1\xEE\xF0 | ENTER - \xEF\xEE\xE4\xF2\xE2\xE5\xF0\xE4\xE8\xF2\xFC | ESC - \xE2\xFB\xF5\xEE\xE4";
+    std::cout << "V MENU: Strelki ^/v - vybor | ENTER - podtverditx | ESC - vyhod";
     setCursor(6, 11);
-    std::cout << "\xD0\xC0\xD1\xD1\xD2\xC0\xCD\xCE\xC2\xCA\xC0: \xD1\xF2\xF0\xE5\xEB\xEA\xE8 - \xE4\xE2\xE8\xE6\xE5\xED\xE8\xE5 | \xCF\xD0\xCE\xC1\xC5\xCB - \xEF\xEE\xE2\xEE\xF0\xEE\xF2 | ENTER - \xF3\xF1\xF2\xE0\xED\xEE\xE2\xE8\xF2\xFC";
+    std::cout << "RASSTANOWKA: Strelki - dvizhenie | PROBEL - povorot | ENTER - ustanovitx";
     setCursor(6, 12);
-    std::cout << "\xC1\xCE\xC9: \xD1\xF2\xF0\xE5\xEB\xEA\xE8 - \xE4\xE2\xE8\xE6\xE5\xED\xE8\xE5 \xEF\xF0\xE8\xF6\xE5\xEB\xE0 | ENTER - \xE2\xFB\xF1\xF2\xF0\xE5\xEB | ESC - \xE2\xFB\xF5\xEE\xE4";
+    std::cout << "BOJ: Strelki - dvizhenie price|a | ENTER - vystrel | ESC - vyhod";
     setCursor(6, 13);
-    std::cout << "\xD0\xC0\xC7\xC4\xC5\xCB\xB8\xCD\xCD\xDB\xC9: P1 - WASD+SHIFT | P2 - \xD1\xF2\xF0\xE5\xEB\xEA\xE8+ENTER | ESC - \xE2\xFB\xF5\xEE\xE4";
+    std::cout << "PAZDELxNNYJ: P1 - WASD+SHIFT | P2 - Strelki+ENTER | ESC - vyhod";
 
     setColor(lightcyan, black);
     setCursor(6, 15);
-    std::cout << "=== \xCF\xD0\xC0\xC2\xC8\xCB\xC0 ===";
+    std::cout << "=== PRAWILA ===";
 
     setColor(white, black);
     setCursor(6, 16);
-    std::cout << "\xC6\xE5\xEB\xFC: \xEF\xEE\xF2\xEE\xEF\xE8\xF2\xFC \xE2\xF1\xE5 \xEA\xEE\xF0\xE0\xE1\xEB\xE8 \xEF\xF0\xEE\xF2\xE8\xE2\xED\xE8\xEA\xE0";
+    std::cout << "Celx: potopitx vse korabli protivnika";
     setCursor(6, 17);
-    std::cout << "\xD4\xEB\xEE\xF2: 1\xD74\xEF\xE0\xEB, 2\xD73\xEF\xE0\xEB, 3\xD72\xEF\xE0\xEB, 4\xD71\xEF\xE0\xEB (10 \xEA\xEE\xF0\xE0\xE1\xEB\xE5\xE9)";
+    std::cout << "Flot: 1x4pal, 2x3pal, 3x2pal, 4x1pal (10 korabl\xA5\xA9)";
     setCursor(6, 18);
-    std::cout << "\xCF\xF0\xE8 \xEF\xEE\xEF\xE0\xE4\xE0\xED\xE8\xE8 \xE4\xEE\xEF\xEE\xEB\xED\xE8\xF2\xE5\xEB\xFC\xED\xFB\xE9 \xF5\xEE\xE4. \xCA\xEE\xF0\xE0\xE1\xEB\xE8 \xED\xE5 \xE4\xEE\xEB\xE6\xED\xFB \xEA\xE0\xF1\xE0\xF2\xFC\xF1\xFF \xE4\xF0\xF3\xE3 \xE4\xF0\xF3\xE3\xE0";
+    std::cout << "Pri popadanii - dopolnitelxnyj hod. Korabli ne dolzhny kasatxsja";
 
     setColor(darkgray, black);
     setCursor(6, 22);
-    std::cout << "\xCD\xE0\xE6\xEC\xE8\xF2\xE5 \xEB\xFE\xE1\xF3\xFE \xEA\xEB\xE0\xE2\xE8\xF8\xF3 \xE4\xEB\xFF \xE2\xEE\xE7\xE2\xF0\xE0\xF2\xE0 \xE2 \xEC\xE5\xED\xFE...";
+    std::cout << "Nazhmite ljubuju klavishu dlja vozvrata v menju...";
     _getch();
 }
 
 void showSoundSettings() {
-    const char* items[] = { "\xC3\xF0\xEE\xEC\xEA\xEE\xF1\xF2\xFC: ", "\xD2\xE5\xF1\xF2 \xE7\xE2\xF3\xEA\xE0  ", "\xCD\xE0\xE7\xE0\xE4       " };
+    const char* items[] = { "Gromkostx: ", "Test zvuka  ", "Nazad       " };
     int sel = 0;
     bool localSound = soundEnabled;
 
@@ -223,19 +194,19 @@ void showSoundSettings() {
 
         setColor(yellow, black);
         setCursor(26, 7);
-        std::cout << "=== \xCD\xC0\xD1\xD2\xD0\xCE\xC9\xCA\xC8 \xC7\xC2\xD3\xCA\xC0 ===";
+        std::cout << "=== NASTROJKI ZWUKA ===";
 
         for (int i = 0; i < 3; i++) {
             setCursor(22, 9 + i);
             if (i == sel) setColor(black, yellow);
             else setColor(white, black);
             std::cout << items[i];
-            if (i == 0) std::cout << (localSound ? "[\xC2\xCA\xCB] " : "[\xC2\xDB\xCA\xCB]");
+            if (i == 0) std::cout << (localSound ? "[WKL] " : "[WYK\x8B]");
         }
 
         setColor(darkgray, black);
         setCursor(2, 23);
-        std::cout << "\x18\x19 - \xE2\xFB\xE1\xEE\xF0 | \x1B\x1A - \xE8\xE7\xEC\xE5\xED\xE5\xED\xE8\xE5 | ENTER - \xF2\xE5\xF1\xF2/\xEF\xF0\xE8\xEC\xE5\xED\xE8\xF2\xFC | ESC - \xED\xE0\xE7\xE0\xE4";
+        std::cout << "^/v - vybor | </> - izmenenie | ENTER - test/primenitx | ESC - nazad";
 
         int key = _getch();
         if (key == 224) {
@@ -259,7 +230,7 @@ void showSoundSettings() {
 bool confirmExit() {
     setColor(yellow, black);
     setCursor(2, 24);
-    std::cout << "\xC2\xFB \xF2\xEE\xF7\xED\xEE \xF5\xEE\xF2\xE8\xF2\xE5 \xE2\xFB\xE9\xF2\xE8? (Y/N): ";
+    std::cout << "Wy tochno hotite wyjti? (Y/N): ";
     while (true) {
         int key = _getch();
         if (key == 'Y' || key == 'y') { clearRow(24); return true; }
@@ -273,11 +244,11 @@ void switchScreenWithTimer(const std::string& nextPlayerName) {
 
     setColor(yellow, black);
     setCursor(24, 8);
-    std::cout << "=== \xCF \xC5 \xD0 \xC5 \xC4 \xC0 \xDE \xC0   \xC7 \xCE \xC4 \xC0 ===";
+    std::cout << "=== PEREDA^A HODA ===";
 
     setColor(white, black);
     setCursor(28, 10);
-    std::cout << "\xCF\xEE\xEC\xE5\xED\xFF\xE9\xF2\xE5\xF1\xFC \xEC\xE5\xF1\xF2\xE0\xEC\xE8!";
+    std::cout << "Pomenjajtesx mestami!";
 
     setColor(lightcyan, black);
     setCursor(22, 11);
@@ -301,13 +272,13 @@ void showVictoryScreen(const std::string& winner) {
 
     setColor(lightgreen, black);
     setCursor(24, 9);
-    std::cout << "=== " << winner << " \xCF \xCE \xC1 \xC5 \xC4 \xC8 \xCC ! ===";
+    std::cout << "=== " << winner << " P O B E D I L ! ===";
 
     playSound(523, 200); playSound(659, 200); playSound(784, 200); playSound(1047, 400);
 
     setColor(darkgray, black);
     setCursor(10, 18);
-    std::cout << "ENTER \xE8\xE3\xF0\xE0\xF2\xFC \xF1\xED\xEE\xE2\xE0 | ESC \xE2\xFB\xF5\xEE\xE4 \xE2 \xEC\xE5\xED\xFE";
+    std::cout << "ENTER - igratx snova | ESC - vyhod v menju";
 }
 
 void showDefeatScreen(const std::string& loser) {
@@ -316,23 +287,21 @@ void showDefeatScreen(const std::string& loser) {
 
     setColor(lightred, black);
     setCursor(26, 9);
-    std::cout << "=== " << loser << " \xCF \xD0 \xCE \xC8 \xC3 \xD0 \xC0 \xCC ===";
+    std::cout << "=== " << loser << " P R O I G R A L ===";
 
     playSound(400, 300); playSound(300, 300); playSound(200, 500);
 
     setColor(darkgray, black);
     setCursor(10, 18);
-    std::cout << "ENTER \xE8\xE3\xF0\xE0\xF2\xFC \xF1\xED\xEE\xE2\xE0 | ESC \xE2\xFB\xF5\xEE\xE4 \xE2 \xEC\xE5\xED\xFE";
+    std::cout << "ENTER - igratx snova | ESC - vyhod v menju";
 }
-
-// --- \xD0\xC5\xD6\xC8\xCC "\xC1\xCE\xC9 \xD1 \xC1\xCE\xD2\xCE\xCC" ---
 
 bool playBotMode(int field1[R][R], int field2[R][R], int botLevel, bool autoPlaceP1) {
     if (autoPlaceP1) {
         autoPlace(field1);
         setColor(white, black); setCursor(2, 23);
-        std::cout << "\xC2\xE0\xF8\xE8 \xEA\xEE\xF0\xE0\xE1\xEB\xE8 \xF0\xE0\xF1\xF1\xF2\xE0\xE2\xEB\xE5\xED\xFB \xE0\xE2\xF2\xEE\xEC\xE0\xF2\xE8\xF7\xE5\xF1\xEA\xE8..."; Sleep(1000);
-    } else { stavlyusam(field1, "\xC8\xC3\xD0\xCE\xCA 1"); }
+        std::cout << "\x82\xA0\xE8\xA8 \xAA\xAE\xE0\xA0\xA1\xAB\xA8 \xE0\xA0\xE1\xE1\xE2\xA0\xA2\xAB\xA5\xAD\xEB \xA0\xA2\xE2\xAE\xAC\xA0\xE2\xA8\xE7\xA5\xE1\xAA\xA8..."; Sleep(1000);
+    } else { stavlyusam(field1, "IGROK 1"); }
     autoPlace(field2);
 
     int cursorY = 0, cursorX = 0;
@@ -342,22 +311,22 @@ bool playBotMode(int field1[R][R], int field2[R][R], int botLevel, bool autoPlac
         system("cls");
 
         setColor(lightcyan, black); setCursor(2, 0);
-        std::cout << "=== \xC1\xCE\xC9 \xD1 \xC1\xCE\xD2\xCE\xCC ===  ";
-        std::cout << (botLevel == 0 ? "[\xCB\xB8\xC3\xCA\xC8\xC9]" : "[\xD1\xCB\xCE\xC6\xCD\xDB\xC9]");
+        std::cout << "=== BOJ S BOTOM ===  ";
+        std::cout << (botLevel == 0 ? "[LxGKIJ]" : "[SLOZhNYJ]");
 
         setColor(lightred, black); setCursor(2, 1);
-        std::cout << "--- \xCF\xCE\xCB\xC5 \xCF\xD0\xCE\xD2\xC8\xC2\xCD\xC8\xCA\xC0 ---";
+        std::cout << "--- POLE PROTIBNIKA ---";
         drawSingleGrid(field2, cursorY, cursorX, false, false, 0, true, true, playerTurn, 2, 2);
 
         setColor(lightgreen, black); setCursor(2, 15);
-        std::cout << "------ \xC2\xC0\xD8\xC5 \xCF\xCE\xCB\xC5 ------";
+        std::cout << "------ WASxE POLE ------";
         drawSingleGrid(field1, -1, -1, true, false, 0, true, true, false, 2, 16);
 
         setColor(darkgray, black); setCursor(2, 23);
-        std::cout << "\xD1\xF2\xF0\xE5\xEB\xEA\xE8 \xF0\xE8\xF6\xE5\xEB | ENTER \xE2\xFB\xF1\xF2\xF0\xE5\xEB | ESC \xE2\xFB\xF5\xEE\xE4             ";
+        std::cout << "Strelki - price| | ENTER - vystrel | ESC - vyhod             ";
 
         if (!playerTurn) {
-            setColor(yellow, black); setCursor(45, 9); std::cout << "\xC1\xEE\xF2 \xE4\xF3\xEC\xE0\xE5\xF2..."; Sleep(800);
+            setColor(yellow, black); setCursor(45, 9); std::cout << "Bot dumaet..."; Sleep(800);
 
             int by, bx;
             if (botLevel == 0) botEasyMove(field1, by, bx); else botSmartMove(field1, by, bx);
@@ -367,14 +336,14 @@ bool playBotMode(int field1[R][R], int field2[R][R], int botLevel, bool autoPlac
             if (field1[by][bx] == CELL_SHIP) {
                 field1[by][bx] = CELL_HIT; flashHit(by, bx, 2, 16);
                 setColor(lightred, black); setCursor(45, 9);
-                std::cout << "\xC2\xC0\xD1 \xCF\xCE\xC4\xC1\xC8\xCB\xC8! (" << (char)('A'+bx) << by << ")";
+                std::cout << "WAS PODBILI! (" << (char)('A'+bx) << by << ")";
                 playSound(1200, 150); Sleep(500);
-                if (allShipsDestroyed(field1)) { showDefeatScreen("\xC8\xC3\xD0\xCE\xCA 1"); _getch(); return false; }
+                if (allShipsDestroyed(field1)) { showDefeatScreen("IGROK 1"); _getch(); return false; }
                 continue;
             } else {
                 field1[by][bx] = CELL_MISS; flashMiss(by, bx, 2, 16);
                 setColor(white, black); setCursor(45, 9);
-                std::cout << "\xC1\xEE\xF2 \xEF\xF0\xEE\xEC\xE0\xF5\xED\xF3\xEB\xF1\xFF (" << (char)('A'+bx) << by << ")";
+                std::cout << "Bot promahnulsja (" << (char)('A'+bx) << by << ")";
                 playSound(400, 300); Sleep(500); playerTurn = true;
             }
         } else {
@@ -387,15 +356,15 @@ bool playBotMode(int field1[R][R], int field2[R][R], int botLevel, bool autoPlac
                 }
             } else if (key == 13) {
                 if (field2[cursorY][cursorX] == CELL_HIT || field2[cursorY][cursorX] == CELL_MISS) {
-                    showMessage("\xD1\xFE\xE4\xE0 \xF3\xE6\xE5 \xF1\xF2\xF0\xE5\xEB\xFF\xEB\xE8! \xC2\xFB\xE1\xE5\xF0\xE8\xF2\xE5 \xE4\xF0\xF3\xE3\xF3\xFE \xEA\xEB\xE5\xF2\xEA\xF3.", yellow, 22); Sleep(800); clearRow(22);
+                    showMessage("Sjuda uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
                 } else if (field2[cursorY][cursorX] == CELL_SHIP) {
                     field2[cursorY][cursorX] = CELL_HIT; flashHit(cursorY, cursorX, 2, 2);
-                    showMessage(">>> \xC1 \xC0 \xC1 \xC0 \xD5 !  \xCF \xCE \xCF \xC0 \xC4 \xC0 \xCD \xC8 \xC5 ! <<<", lightred, 22);
+                    showMessage(">>> POPADANIE! <<<", lightred, 22);
                     playSound(1200, 150); playSound(800, 100); Sleep(500); clearRow(22);
-                    if (allShipsDestroyed(field2)) { showVictoryScreen("\xC8\xC3\xD0\xCE\xCA 1"); _getch(); return true; }
+                    if (allShipsDestroyed(field2)) { showVictoryScreen("IGROK 1"); _getch(); return true; }
                 } else {
                     field2[cursorY][cursorX] = CELL_MISS; flashMiss(cursorY, cursorX, 2, 2);
-                    showMessage(">>> \xCC \xC8 \xCC \xCF . . . <<<", cyan, 22);
+                    showMessage(">>> MIMO... <<<", cyan, 22);
                     playSound(400, 300); Sleep(500); clearRow(22); playerTurn = false;
                 }
             } else if (key == 27) { if (confirmExit()) return false; }
@@ -404,13 +373,11 @@ bool playBotMode(int field1[R][R], int field2[R][R], int botLevel, bool autoPlac
     return false;
 }
 
-// --- \xD0\xC5\xD6\xC8\xCC "1 \xCD\xC0 1 \xCF\xCE \xCE\xD7\xC5\xD0\xC5\xC4\xC8" ---
-
 bool playPVP_TurnMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], int p2Fog[R][R]) {
-    stavlyusam(p1Field, "\xC8\xC3\xD0\xCE\xCA 1");
-    switchScreenWithTimer("\xC8\xC3\xD0\xCE\xCA 2");
-    stavlyusam(p2Field, "\xC8\xC3\xD0\xCE\xCA 2");
-    switchScreenWithTimer("\xC8\xC3\xD0\xCE\xCA 1");
+    stavlyusam(p1Field, "IGROK 1");
+    switchScreenWithTimer("IGROK 2");
+    stavlyusam(p2Field, "IGROK 2");
+    switchScreenWithTimer("IGROK 1");
 
     int cursorY = 0, cursorX = 0;
     int currentPlayer = 1;
@@ -423,18 +390,18 @@ bool playPVP_TurnMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], int
         int (*enemyFog)[R] = (currentPlayer == 1) ? p2Fog : p1Fog;
 
         setColor(lightcyan, black); setCursor(2, 0);
-        std::cout << "=== \xC7\xCE\xC4 \xC8\xC3\xD0\xCE\xCA\xC0 " << currentPlayer << " ===";
+        std::cout << "=== HOD IGROKA " << currentPlayer << " ===";
 
         setColor(lightred, black); setCursor(2, 1);
-        std::cout << "--- \xCF\xCE\xCB\xC5 \xCF\xD0\xCE\xD2\xC8\xC2\xCD\xC8\xCA\xC0 ---";
+        std::cout << "--- POLE PROTIBNIKA ---";
         drawSingleGrid(enemyField, cursorY, cursorX, false, false, 0, true, true, true, 2, 2);
 
         setColor(lightgreen, black); setCursor(2, 15);
-        std::cout << "------ \xC2\xC0\xD8\xC5 \xCF\xCE\xCB\xC5 ------";
+        std::cout << "------ WASxE POLE ------";
         drawSingleGrid(myField, -1, -1, true, false, 0, true, true, false, 2, 16);
 
         setColor(darkgray, black); setCursor(2, 23);
-        std::cout << "\xD1\xF2\xF0\xE5\xEB\xEA\xE8 \xF0\xE8\xF6\xE5\xEB | ENTER \xE2\xFB\xF1\xF2\xF0\xE5\xEB | ESC \xE2\xFB\xF5\xEE\xE4";
+        std::cout << "Strelki - price| | ENTER - vystrel | ESC - vyhod";
 
         int key = _getch();
         if (key == 224) {
@@ -445,22 +412,22 @@ bool playPVP_TurnMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], int
             }
         } else if (key == 13) {
             if (enemyFog[cursorY][cursorX] == CELL_HIT || enemyFog[cursorY][cursorX] == CELL_MISS) {
-                showMessage("\xD1\xFE\xE4\xE0 \xF3\xE6\xE5 \xF1\xF2\xF0\xE5\xEB\xFF\xEB\xE8!", yellow, 22); Sleep(800); clearRow(22);
+                showMessage("Sjuda uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
             } else if (enemyField[cursorY][cursorX] == CELL_SHIP) {
                 enemyField[cursorY][cursorX] = CELL_HIT; enemyFog[cursorY][cursorX] = CELL_HIT;
                 flashHit(cursorY, cursorX, 2, 2);
-                showMessage(">>> \xCF \xCE \xCF \xC0 \xC4 \xC0 \xCD \xC8 \xC5 ! <<<", lightred, 22);
+                showMessage(">>> POPADANIE! <<<", lightred, 22);
                 playSound(1200, 150); playSound(800, 100); Sleep(500); clearRow(22);
                 if (allShipsDestroyed(enemyField)) {
-                    std::string winner = (currentPlayer == 1) ? "\xC8\xC3\xD0\xCE\xCA 1" : "\xC8\xC3\xD0\xCE\xCA 2";
+                    std::string winner = (currentPlayer == 1) ? "IGROK 1" : "IGROK 2";
                     showVictoryScreen(winner); _getch(); return (currentPlayer == 1);
                 }
             } else {
                 enemyField[cursorY][cursorX] = CELL_MISS; enemyFog[cursorY][cursorX] = CELL_MISS;
                 flashMiss(cursorY, cursorX, 2, 2);
-                showMessage(">>> \xCC \xC8 \xCC \xCE . . . <<<", cyan, 22);
+                showMessage(">>> MIMO... <<<", cyan, 22);
                 playSound(400, 300); Sleep(500); clearRow(22);
-                std::string nextPlayer = (currentPlayer == 1) ? "\xC8\xC3\xD0\xCE\xCA 2" : "\xC8\xC3\xD0\xCE\xCA 1";
+                std::string nextPlayer = (currentPlayer == 1) ? "IGROK 2" : "IGROK 1";
                 switchScreenWithTimer(nextPlayer);
                 currentPlayer = (currentPlayer == 1) ? 2 : 1; cursorY = 0; cursorX = 0;
             }
@@ -468,13 +435,11 @@ bool playPVP_TurnMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], int
     }
 }
 
-// --- \xD0\xC5\xD6\xC8\xCD "1 \xCD\xC0 1 \xD0\xC0\xC7\xC4\xC5\xCB\xB8\xCD\xCD\xDB\xC9 \xDD\xCB\xD0\xC0\xCD" ---
-
 bool playPVP_SplitMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], int p2Fog[R][R]) {
-    stavlyusam(p1Field, "\xC8\xC3\xD0\xCE\xCA 1");
+    stavlyusam(p1Field, "IGROK 1");
     system("cls"); setColor(white, black); setCursor(15, 12);
-    std::cout << "\xCD\xE0\xE6\xEC\xE8\xF2\xE5 \xEB\xFE\xE1\xF3\xFE \xEA\xEB\xE0\xE2\xE8\xF8\xF3, \xEA\xEE\xE3\xE4\xE0 \xE1\xF3\xE4\xE5\xF2\xE5 \xE3\xEE\xF2\xEE\xE2\xFB (\xC8\xE3\xF0\xEE\xEA 2)..."; _getch();
-    stavlyusam(p2Field, "\xC8\xC3\xD0\xCE\xCA 2");
+    std::cout << "Nazhmite ljubuju klavishu, kogda budete gotowy (Igrok 2)..."; _getch();
+    stavlyusam(p2Field, "IGROK 2");
 
     int p1CursorY = 0, p1CursorX = 0;
     int p2CursorY = 0, p2CursorX = 0;
@@ -484,17 +449,17 @@ bool playPVP_SplitMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], in
         system("cls");
 
         setColor(currentPlayer == 1 ? lightgreen : darkgray, black); setCursor(2, 0);
-        std::cout << (currentPlayer == 1 ? ">>> \xC8\xC3\xD0\xCE\xCA 1 (\xC2\xC0\xD8 \xC7\xCE\xC4) <<<" : "    \xC8\xC3\xD0\xCE\xCA 1 (\xCE\xC6\xC8\xC4\xC0\xC5\xD2)    ");
+        std::cout << (currentPlayer == 1 ? ">>> IGROK 1 (WASx HOD) <<<" : "    IGROK 1 (OZhIDAET)    ");
         drawSingleGrid(p1Field, p1CursorY, p1CursorX, true, false, 0, true, true, currentPlayer == 1, 0, 1);
 
         drawDivider();
 
         setColor(currentPlayer == 2 ? lightred : darkgray, black); setCursor(42, 0);
-        std::cout << (currentPlayer == 2 ? ">>> \xC8\xC3\xD0\xCE\xCA 2 (\xC2\xC0\xD8 \xC7\xCE\xC4) <<<" : "    \xC8\xC3\xD0\xCE\xCA 2 (\xCE\xC6\xC8\xC4\xC0\xC5\xD2)    ");
+        std::cout << (currentPlayer == 2 ? ">>> IGROK 2 (WASx HOD) <<<" : "    IGROK 2 (OZhIDAET)    ");
         drawSingleGrid(p2Field, p2CursorY, p2CursorX, true, false, 0, true, true, currentPlayer == 2, 41, 1);
 
         setColor(darkgray, black); setCursor(2, 23);
-        std::cout << "P1: WASD+SHIFT | P2: \xD1\xF2\xF0\xE5\xEB\xEA\xE8+ENTER | ESC \xE2\xFB\xF5\xEE\xE4";
+        std::cout << "P1: WASD+SHIFT | P2: Strelki+ENTER | ESC - vyhod";
 
         int key = _getch();
 
@@ -511,15 +476,15 @@ bool playPVP_SplitMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], in
             if (shoot) {
                 int ey = p1CursorY, ex = p1CursorX;
                 if (p2Field[ey][ex] == CELL_HIT || p2Field[ey][ex] == CELL_MISS) {
-                    showMessage("\xD3\xE6\xE5 \xF1\xF2\xF0\xE5\xEB\xFF\xEB\xE8!", yellow, 22); Sleep(800); clearRow(22);
+                    showMessage("Uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
                 } else if (p2Field[ey][ex] == CELL_SHIP) {
                     p2Field[ey][ex] = CELL_HIT; flashHit(ey, ex, 41, 1);
-                    showMessage("\xC8\xC3\xD0\xCE\xCA 1 \xE2\xF0\xE8\xEB!", lightgreen, 22);
+                    showMessage("IGROK 1 - POPADANIE!", lightgreen, 22);
                     playSound(1200, 150); Sleep(500); clearRow(22);
-                    if (allShipsDestroyed(p2Field)) { showVictoryScreen("\xC8\xC3\xD0\xCE\xCA 1"); _getch(); return true; }
+                    if (allShipsDestroyed(p2Field)) { showVictoryScreen("IGROK 1"); _getch(); return true; }
                 } else {
                     p2Field[ey][ex] = CELL_MISS; flashMiss(ey, ex, 41, 1);
-                    showMessage("\xC8\xC3\xD0\xCE\xCA 1 \xF2\xF0\xE8\xF2!", cyan, 22);
+                    showMessage("IGROK 1 - MIMO...", cyan, 22);
                     playSound(400, 300); Sleep(500); clearRow(22); currentPlayer = 2;
                 }
             }
@@ -533,15 +498,15 @@ bool playPVP_SplitMode(int p1Field[R][R], int p2Field[R][R], int p1Fog[R][R], in
             } else if (key == 13) {
                 int ey = p2CursorY, ex = p2CursorX;
                 if (p1Field[ey][ex] == CELL_HIT || p1Field[ey][ex] == CELL_MISS) {
-                    showMessage("\xD3\xE6\xE5 \xF1\xF2\xF0\xE5\xEB\xFF\xEB\xE8!", yellow, 22); Sleep(800); clearRow(22);
+                    showMessage("Uzhe streljli!", yellow, 22); Sleep(800); clearRow(22);
                 } else if (p1Field[ey][ex] == CELL_SHIP) {
                     p1Field[ey][ex] = CELL_HIT; flashHit(ey, ex, 0, 1);
-                    showMessage("\xC8\xC3\xD0\xCE\xCA 2 \xE2\xF0\xE8\xEB!", lightred, 22);
+                    showMessage("IGROK 2 - POPADANIE!", lightred, 22);
                     playSound(1200, 150); Sleep(500); clearRow(22);
-                    if (allShipsDestroyed(p1Field)) { showVictoryScreen("\xC8\xC3\xD0\xCE\xCA 2"); _getch(); return false; }
+                    if (allShipsDestroyed(p1Field)) { showVictoryScreen("IGROK 2"); _getch(); return false; }
                 } else {
                     p1Field[ey][ex] = CELL_MISS; flashMiss(ey, ex, 0, 1);
-                    showMessage("\xC8\xC3\xD0\xCE\xCA 2 \xF2\xF0\xE8\xF2!", cyan, 22);
+                    showMessage("IGROK 2 - MIMO...", cyan, 22);
                     playSound(400, 300); Sleep(500); clearRow(22); currentPlayer = 1;
                 }
             }

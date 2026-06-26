@@ -5,8 +5,6 @@
 #include "graphics.h"
 #include <iostream>
 
-// --- Базовые функции консоли ---
-
 void setColor(Color text, Color background) {
     SetConsoleTextAttribute(hstdout, text + background * 16);
 }
@@ -23,38 +21,33 @@ void hideCursor() {
     SetConsoleCursorInfo(hstdout, &info);
 }
 
-// --- Рисование рамок и линий ---
-
 void drawBox(int x, int y, int w, int h, Color borderColor) {
     setColor(borderColor, black);
-    // Верхняя граница
     setCursor(x, y);
-    std::cout << "\xC9";
-    for (int i = 0; i < w; i++) std::cout << "\xCD";
-    std::cout << "\xBB";
-    // Боковые границы
+    std::cout << "+";
+    for (int i = 0; i < w; i++) std::cout << "=";
+    std::cout << "+";
     for (int i = 0; i < h; i++) {
         setCursor(x, y + 1 + i);
-        std::cout << "\xBA";
+        std::cout << "|";
         setCursor(x + w + 1, y + 1 + i);
-        std::cout << "\xBA";
+        std::cout << "|";
     }
-    // Нижняя граница
     setCursor(x, y + h + 1);
-    std::cout << "\xC8";
-    for (int i = 0; i < w; i++) std::cout << "\xCD";
-    std::cout << "\xBC";
+    std::cout << "+";
+    for (int i = 0; i < w; i++) std::cout << "=";
+    std::cout << "+";
 }
 
 void drawLine(int x, int y, int len, bool horizontal, Color color) {
     setColor(color, black);
     setCursor(x, y);
     if (horizontal) {
-        for (int i = 0; i < len; i++) std::cout << "\xCD";
+        for (int i = 0; i < len; i++) std::cout << "=";
     } else {
         for (int i = 0; i < len; i++) {
             setCursor(x, y + i);
-            std::cout << "\xBA";
+            std::cout << "|";
         }
     }
 }
@@ -62,24 +55,20 @@ void drawLine(int x, int y, int len, bool horizontal, Color color) {
 void drawDivider() {
     setColor(lightgray, black);
     setCursor(DIVIDER_X, 0);
-    std::cout << "\xCB";
+    std::cout << "+";
     for (int y = 1; y < SCREEN_HEIGHT - 1; y++) {
         setCursor(DIVIDER_X, y);
-        std::cout << "\xBA";
+        std::cout << "|";
     }
     setCursor(DIVIDER_X, SCREEN_HEIGHT - 1);
-    std::cout << "\xCA";
+    std::cout << "+";
 }
 
-// --- Вспомогательные функции ---
-
-/** Получение экранных координат клетки */
 static void getCellScreenPos(int y, int x, int offsetX, int offsetY, int& sx, int& sy) {
     sx = offsetX + 3 + x * 3;
     sy = offsetY + 2 + y;
 }
 
-/** Проверка, является ли клетка частью ghost-корабля */
 static bool isGhostCell(int gy, int gx, int cursorY, int cursorX, int ghostSize, bool ghostDir) {
     if (ghostSize <= 0) return false;
     if (ghostDir) {
@@ -89,13 +78,12 @@ static bool isGhostCell(int gy, int gx, int cursorY, int cursorX, int ghostSize,
     }
 }
 
-/** Отрисовка информации о флоте справа от поля */
 static void drawFleetInfo(int field[R][R], int offsetX, int offsetY) {
     setColor(white, black);
     setCursor(offsetX + 35, offsetY);
-    std::cout << "\xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB";
+    std::cout << "+==========+";
     setCursor(offsetX + 35, offsetY + 1);
-    std::cout << "\xBA \xD4\xEB\xEE\xF2:      \xBA";
+    std::cout << "| Fleet    |";
 
     int ships[5] = {0, 0, 0, 0, 0};
     bool used[R][R] = {false};
@@ -121,10 +109,10 @@ static void drawFleetInfo(int field[R][R], int offsetX, int offsetY) {
     int row = 2;
     for (int s = 4; s >= 1; s--) {
         setCursor(offsetX + 35, offsetY + row);
-        std::cout << "\xBA ";
+        std::cout << "| ";
         if (ships[s] > 0) setColor(lightgreen, black);
         else setColor(darkgray, black);
-        std::cout << s << "\xD7" << ships[s] << " ";
+        std::cout << s << "x" << ships[s] << " ";
         for (int i = 0; i < s; i++) {
             if (ships[s] > 0) std::cout << "[S]";
             else std::cout << "[.]";
@@ -132,14 +120,12 @@ static void drawFleetInfo(int field[R][R], int offsetX, int offsetY) {
         setColor(white, black);
         int printed = 3 + 3 * s;
         while (printed < 10) { std::cout << " "; printed++; }
-        std::cout << "\xBA";
+        std::cout << "|";
         row++;
     }
     setCursor(offsetX + 35, offsetY + row);
-    std::cout << "\xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC";
+    std::cout << "+==========+";
 }
-
-// --- Отрисовка клеток и полей ---
 
 void drawCell(int val, bool isCursor, bool showShips, bool isGhost, bool isValid) {
     if (isCursor) {
@@ -211,8 +197,6 @@ void drawSingleGrid(int field[R][R], int cursorY, int cursorX, bool showShips,
     }
 }
 
-// --- Анимации и эффекты ---
-
 void flashHit(int hy, int hx, int offsetX, int offsetY) {
     int sx, sy;
     getCellScreenPos(hy, hx, offsetX, offsetY, sx, sy);
@@ -251,7 +235,7 @@ void flashMiss(int my, int mx, int offsetX, int offsetY) {
 
     setColor(darkgray, black);
     setCursor(sx, sy);
-    std::cout << " \xB7 ";
+    std::cout << " . ";
     playSound(400, 300);
     Sleep(50);
 }
