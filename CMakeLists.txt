@@ -4,6 +4,11 @@ project(SeaBattleSFML VERSION 2.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Force Release build (matches the DLLs we use)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # --- MSVC UTF-8 FIX ---
 if(MSVC)
     add_compile_options(/utf-8)
@@ -47,8 +52,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE include ${SFML_INCLUDE_DIR})
 # Link directories
 target_link_directories(${PROJECT_NAME} PRIVATE ${SFML_LIB_DIR})
 
-# Link SFML: debug (-d suffix) for Debug build, normal for Release
-# Use .lib files (Visual Studio will auto-link correct variant)
+# Link SFML (Release .lib files)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     sfml-graphics
     sfml-window
