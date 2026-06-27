@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "cmake",
+      "label": "CMake: build",
+      "command": "build",
+      "targets": ["SeaBattleSFML"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$msCompile"],
+      "detail": "Build SeaBattleSFML Release"
+    }
+  ]
+}
