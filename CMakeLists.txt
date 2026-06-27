@@ -59,6 +59,16 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     sfml-system
 )
 
+# Auto-copy SFML DLLs to output folder after build
+set(SFML_DLL_DIR "${SFML_ROOT}/bin")
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SFML_DLL_DIR}/sfml-graphics-2.dll"
+        "${SFML_DLL_DIR}/sfml-window-2.dll"
+        "${SFML_DLL_DIR}/sfml-system-2.dll"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)
+
 # Copy assets to output directory after build
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
